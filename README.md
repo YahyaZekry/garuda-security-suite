@@ -28,8 +28,8 @@ git clone https://github.com/YahyaZekry/garuda-security-suite.git
 cd garuda-security-suite
 
 # Make executable and run
-chmod +x setup-security-suite-v5-complete.sh
-./setup-security-suite-v5-complete.sh
+chmod +x setup-security-suite.sh
+./setup-security-suite.sh
 ```
 
 **That's it!** 🎉 Your system will be protected with automated daily, weekly, and monthly security scans.
@@ -99,7 +99,7 @@ _"Choose your setup style - quick sip or full ceremony!"_
 ### 🚀 **Quick Setup (Default Settings)**
 
 ```bash
-./setup-security-suite-v5-complete.sh
+./setup-security-suite.sh
 # Choose: "D" for defaults when prompted
 # Enable scheduling: "Y" when asked
 # Run final test: "Y" to validate
@@ -108,7 +108,7 @@ _"Choose your setup style - quick sip or full ceremony!"_
 ### ⚙️ **Custom Configuration**
 
 ```bash
-./setup-security-suite-v5-complete.sh
+./setup-security-suite.sh
 # Choose: "c" for custom when prompted
 # Navigate through all 10 configuration menus
 # Perfect your setup like perfecting your mate blend
