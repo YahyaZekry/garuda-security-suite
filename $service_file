@@ -1,0 +1,15 @@
+[Unit]
+Description=${service_name%.*}
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=$script_path
+WorkingDirectory=$(dirname "$script_path")
+StandardOutput=journal
+StandardError=journal
+Environment=USER=$USER
+Environment=HOME=$HOME
+
+[Install]
+WantedBy=default.target
