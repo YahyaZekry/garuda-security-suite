@@ -277,7 +277,7 @@ check_dangerous_patterns() {
     
     # Check for dangerous patterns
     if [[ "$input" =~ \.\./\.\. ]] || [[ "$input" =~ \;rm\ -rf ]] || [[ "$input" =~ \&\&\ dd ]] || [[ "$input" =~ \|rm\ -rf ]] || [[ "$input" =~ \$\(rm\ -rf ]]; then
-        echo "Dangerous pattern detected in input"
+        echo "Dangerous pattern detected in input" >&2
         return 1
     fi
     
