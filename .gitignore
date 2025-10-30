@@ -1,0 +1,160 @@
+# Garuda Security Suite - Git Ignore File
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.bak
+*~
+*.swp
+*.swo
+*.orig
+*.rej
+.#*#
+*#
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Test files and results
+tests/test-results/
+tests/temp_line
+tests/*.backup
+tests/*.tmp
+
+# Security scan results and logs
+*.scan
+*.quarantine
+*.infected
+*.virus
+*.malware
+
+# Configuration files with sensitive data
+configs/user-*.conf
+configs/local-*.conf
+*.secret
+*.key
+*.pem
+*.crt
+
+# Runtime and cache files
+*.pid
+*.lock
+*.cache
+*.run
+
+# Backup files
+*.backup
+*.old
+*.previous
+
+# Development and debugging
+debug/
+dev/
+test-output/
+coverage/
+
+# Documentation build artifacts
+docs/build/
+docs/_build/
+*.aux
+*.toc
+*.out
+*.log
+
+# Package files
+*.deb
+*.rpm
+*.tar.gz
+*.zip
+*.tgz
+
+# Local environment files
+.env
+.env.local
+.env.*.local
+
+# Node.js (if any)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python (if any)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# User-specific data
+logs/
+user-data/
+local-data/
+personal-config/
+
+# Temporary test directories
+/tmp/garuda-security-test/
+/tmp/security-suite-*/
+
+# Installation artifacts
+*.install
+*.uninstall
+*.setup
+
+# Systemd user services (generated per user)
+~/.config/systemd/user/garuda-*.timer
+~/.config/systemd/user/garuda-*.service
+
+# User-specific scan results
+~/.local/share/garuda-security-suite/
+~/.cache/garuda-security-suite/
+
+# IDE specific files
+*.sublime-project
+*.sublime-workspace
+.atom/
+.brackets.json
+
+# Build artifacts
+build/
+dist/
+target/
+bin/
+obj/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Certificate files
+*.p12
+*.pfx
+*.jks
+
+# Configuration overrides
+config.override
+settings.local
+
+# Markdown files (with exceptions)
+*.md
+!README.md
+!docs/*.md
