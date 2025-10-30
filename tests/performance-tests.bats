@@ -27,9 +27,14 @@ teardown() {
 #!/bin/bash
 # Mock Daily Security Scan Script with Memory Simulation
 
+# Use test environment paths, don't source external config
 SCRIPT_DIR="$(dirname "$0")"
-source "$SCRIPT_DIR/../configs/security-config.conf"
-source "$SCRIPT_DIR/common-functions.sh"
+LOGS_DIR="${LOGS_DIR:-$TEST_LOGS_DIR}"
+
+# Load functions from test helper if available
+if [ -f "$SCRIPT_DIR/../test-helper.bash" ]; then
+    source "$SCRIPT_DIR/../test-helper.bash"
+fi
 
 # Simulate memory usage during scan
 simulate_memory_usage() {
@@ -94,9 +99,14 @@ EOF
 #!/bin/bash
 # Mock Daily Security Scan Script with Log Generation
 
+# Use test environment paths
 SCRIPT_DIR="$(dirname "$0")"
-source "$SCRIPT_DIR/../configs/security-config.conf"
-source "$SCRIPT_DIR/common-functions.sh"
+LOGS_DIR="${LOGS_DIR:-$TEST_LOGS_DIR}"
+
+# Load functions from test helper if available
+if [ -f "$SCRIPT_DIR/../test-helper.bash" ]; then
+    source "$SCRIPT_DIR/../test-helper.bash"
+fi
 
 SCAN_TYPE="daily"
 LOG_TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
@@ -165,9 +175,14 @@ EOF
 #!/bin/bash
 # Mock Daily Security Scan Script with Timing
 
+# Use test environment paths
 SCRIPT_DIR="$(dirname "$0")"
-source "$SCRIPT_DIR/../configs/security-config.conf"
-source "$SCRIPT_DIR/common-functions.sh"
+LOGS_DIR="${LOGS_DIR:-$TEST_LOGS_DIR}"
+
+# Load functions from test helper if available
+if [ -f "$SCRIPT_DIR/../test-helper.bash" ]; then
+    source "$SCRIPT_DIR/../test-helper.bash"
+fi
 
 # Record start time
 scan_start=$(date +%s)
@@ -219,9 +234,14 @@ EOF
 #!/bin/bash
 # Mock Security Scan Script for Concurrent Testing
 
+# Use test environment paths
 SCRIPT_DIR="$(dirname "$0")"
-source "$SCRIPT_DIR/../configs/security-config.conf"
-source "$SCRIPT_DIR/common-functions.sh"
+LOGS_DIR="${LOGS_DIR:-$TEST_LOGS_DIR}"
+
+# Load functions from test helper if available
+if [ -f "$SCRIPT_DIR/../test-helper.bash" ]; then
+    source "$SCRIPT_DIR/../test-helper.bash"
+fi
 
 SCAN_TYPE="$1"
 SCAN_ID="$2"
@@ -285,9 +305,14 @@ EOF
 #!/bin/bash
 # Mock Daily Security Scan Script with Resource Cleanup
 
+# Use test environment paths
 SCRIPT_DIR="$(dirname "$0")"
-source "$SCRIPT_DIR/../configs/security-config.conf"
-source "$SCRIPT_DIR/common-functions.sh"
+LOGS_DIR="${LOGS_DIR:-$TEST_LOGS_DIR}"
+
+# Load functions from test helper if available
+if [ -f "$SCRIPT_DIR/../test-helper.bash" ]; then
+    source "$SCRIPT_DIR/../test-helper.bash"
+fi
 
 # Create temporary files and processes
 TEMP_DIR="$TEST_DIR/temp_$$"
@@ -357,9 +382,14 @@ EOF
 #!/bin/bash
 # Mock Daily Security Scan Script with Load Testing
 
+# Use test environment paths
 SCRIPT_DIR="$(dirname "$0")"
-source "$SCRIPT_DIR/../configs/security-config.conf"
-source "$SCRIPT_DIR/common-functions.sh"
+LOGS_DIR="${LOGS_DIR:-$TEST_LOGS_DIR}"
+
+# Load functions from test helper if available
+if [ -f "$SCRIPT_DIR/../test-helper.bash" ]; then
+    source "$SCRIPT_DIR/../test-helper.bash"
+fi
 
 # Record start time
 scan_start=$(date +%s)
@@ -435,9 +465,14 @@ EOF
 #!/bin/bash
 # Mock Daily Security Scan Script with Log Generation
 
+# Use test environment paths
 SCRIPT_DIR="$(dirname "$0")"
-source "$SCRIPT_DIR/../configs/security-config.conf"
-source "$SCRIPT_DIR/common-functions.sh"
+LOGS_DIR="${LOGS_DIR:-$TEST_LOGS_DIR}"
+
+# Load functions from test helper if available
+if [ -f "$SCRIPT_DIR/../test-helper.bash" ]; then
+    source "$SCRIPT_DIR/../test-helper.bash"
+fi
 
 SCAN_TYPE="daily"
 LOG_TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
