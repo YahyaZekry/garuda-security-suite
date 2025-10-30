@@ -1,0 +1,155 @@
+# Dependabot configuration for Garuda Security Suite
+version: 2
+updates:
+
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "YahyaZekry"
+    assignees:
+      - "YahyaZekry"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "github-actions"
+
+  # Enable version updates for system packages (pacman)
+  - package-ecosystem: "pacman"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "09:00"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "YahyaZekry"
+    assignees:
+      - "YahyaZekry"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "security-tools"
+
+  # Enable security vulnerability scanning
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      time: "06:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "YahyaZekry"
+    assignees:
+      - "YahyaZekry"
+    commit-message:
+      prefix: "security"
+      include: "scope"
+    labels:
+      - "security"
+      - "dependencies"
+      - "priority-high"
+
+  # Enable updates for documentation dependencies
+  - package-ecosystem: "npm"
+    directory: "/docs"
+    schedule:
+      interval: "monthly"
+      day: 1
+      time: "09:00"
+    open-pull-requests-limit: 2
+    reviewers:
+      - "YahyaZekry"
+    assignees:
+      - "YahyaZekry"
+    commit-message:
+      prefix: "docs"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "documentation"
+
+# Configuration for security vulnerability alerts
+security-updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      time: "06:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "YahyaZekry"
+    assignees:
+      - "YahyaZekry"
+    commit-message:
+      prefix: "security"
+      include: "scope"
+    labels:
+      - "security"
+      - "vulnerability"
+      - "priority-critical"
+
+  - package-ecosystem: "pacman"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      time: "06:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "YahyaZekry"
+    assignees:
+      - "YahyaZekry"
+    commit-message:
+      prefix: "security"
+      include: "scope"
+    labels:
+      - "security"
+      - "vulnerability"
+      - "priority-critical"
+
+# Auto-merge configuration for minor updates
+auto-merge:
+  - dependency-type: "development"
+    update-types: ["version-update:semver-patch"]
+    auto-merge: true
+  - dependency-type: "production"
+    update-types: ["version-update:semver-patch"]
+    auto-merge: true
+    require-tests: true
+    require-code-owners-review: false
+
+# Configuration for grouped updates
+group:
+  # Group all GitHub Actions updates
+  github-actions:
+    patterns:
+      - "actions/*"
+    dependency-type: "development"
+    update-types: ["version-update:semver-minor", "version-update:semver-patch"]
+    
+  # Group security tool updates
+  security-tools:
+    patterns:
+      - "clamav"
+      - "rkhunter"
+      - "chkrootkit"
+      - "lynis"
+    dependency-type: "production"
+    update-types: ["version-update:semver-minor", "version-update:semver-patch"]
+    
+  # Group documentation dependencies
+  documentation:
+    patterns:
+      - "markdownlint"
+      - "mermaid"
+    dependency-type: "development"
+    update-types: ["version-update:semver-minor", "version-update:semver-patch"]
