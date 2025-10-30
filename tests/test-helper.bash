@@ -47,42 +47,54 @@ mock_external_commands() {
     
     # Mock clamscan with more realistic behavior
         cat > "$mock_bin/clamscan" << 'EOF'
-    #!/bin/bash
-    
-    # Enhanced mock clamscan that handles EICAR detection and logging
-    SCAN_LOG="\${LOGS_DIR:-$TEST_LOGS_DIR}/daily/clamav_\$(date +%Y%m%d_%H%M%S).log"
-    
-    # Create log directory
-    mkdir -p "\$(dirname "\$SCAN_LOG")"
-    
-    if [[ "\$*" == *"$TEST_DIR/eicar.com"* ]]; then
-        echo "EICAR Signature FOUND" | tee -a "\$SCAN_LOG"
-        echo "Scan completed. Found threats." | tee -a "\$SCAN_LOG"
+#!/bin/bash
+
+# Enhanced mock clamscan that handles EICAR detection and logging
+SCAN_LOG="${LOGS_DIR:-$TEST_LOGS_DIR}/daily/clamav_$(date +%Y%m%d_%H%M%S).log"
+
+# Create log directory
+mkdir -p "$(dirname "$SCAN_LOG")"
+
+# Check if any argument contains eicar.com or the EICAR signature
+for arg in "$@"; do
+    if [[ "$arg" == *"eicar.com"* ]] || [[ -f "$arg" && "$arg" == *"eicar.com"* ]]; then
+        echo "EICAR Signature FOUND" | tee -a "$SCAN_LOG"
+        echo "Scan completed. Found threats." | tee -a "$SCAN_LOG"
         exit 1
-    else
-        echo "Scan completed. No threats found." | tee -a "\$SCAN_LOG"
-        exit 0
     fi
-    EOF
+done
+
+# Also check if EICAR signature is in any file being scanned
+for arg in "$@"; do
+    if [[ -f "$arg" ]] && grep -q "EICAR-STANDARD-ANTIVIRUS-TEST-FILE" "$arg" 2>/dev/null; then
+        echo "EICAR Signature FOUND" | tee -a "$SCAN_LOG"
+        echo "Scan completed. Found threats." | tee -a "$SCAN_LOG"
+        exit 1
+    fi
+done
+
+echo "Scan completed. No threats found." | tee -a "$SCAN_LOG"
+exit 0
+EOF
     
     # Also create a mock that creates the security_scan log file directly
         cat > "$mock_bin/security_scan_log_creator" << 'EOF'
-    #!/bin/bash
-    LOG_FILE="\${1:-\$TEST_LOGS_DIR/daily/security_scan_\$(date +%Y%m%d_%H%M%S).log}"
-    mkdir -p "\$(dirname "\$LOG_FILE")"
-    echo "Daily Security Scan - \$(date)" > "\$LOG_FILE"
-    echo "============================" >> "\$LOG_FILE"
-    EOF
+#!/bin/bash
+LOG_FILE="${1:-$TEST_LOGS_DIR/daily/security_scan_$(date +%Y%m%d_%H%M%S).log}"
+mkdir -p "$(dirname "$LOG_FILE")"
+echo "Daily Security Scan - $(date)" > "$LOG_FILE"
+echo "============================" >> "$LOG_FILE"
+EOF
         chmod +x "$mock_bin/security_scan_log_creator"
     
     # Also create a mock that handles the security_scan log pattern
         cat > "$mock_bin/security_scan_log_creator" << 'EOF'
-    #!/bin/bash
-    LOG_FILE="\${1:-\$TEST_LOGS_DIR/daily/security_scan_\$(date +%Y%m%d_%H%M%S).log}"
-    mkdir -p "\$(dirname "\$LOG_FILE")"
-    echo "Daily Security Scan - \$(date)" > "\$LOG_FILE"
-    echo "============================" >> "\$LOG_FILE"
-    EOF
+#!/bin/bash
+LOG_FILE="${1:-$TEST_LOGS_DIR/daily/security_scan_$(date +%Y%m%d_%H%M%S).log}"
+mkdir -p "$(dirname "$LOG_FILE")"
+echo "Daily Security Scan - $(date)" > "$LOG_FILE"
+echo "============================" >> "$LOG_FILE"
+EOF
         chmod +x "$mock_bin/security_scan_log_creator"
     
     # Mock freshclam
@@ -409,3 +421,4 @@ export -f check_dangerous_patterns
 export -f sanitize_input
 export -f validate_security_config
 export -f clamav_scan
+export -f setup_security_suite
