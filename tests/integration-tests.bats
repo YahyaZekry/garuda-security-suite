@@ -27,10 +27,18 @@ teardown() {
 #!/bin/bash
 # Mock Daily Security Scan Script for Integration Testing
 
-# Load configuration and functions
+# Use test environment paths, don't source external config that might override them
 SCRIPT_DIR="$(dirname "$0")"
-source "$SCRIPT_DIR/../configs/security-config.conf"
-source "$SCRIPT_DIR/common-functions.sh"
+
+# Load only essential functions from test helper (not from common-functions.sh which might not exist)
+if [ -f "$SCRIPT_DIR/../test-helper.bash" ]; then
+    source "$SCRIPT_DIR/../test-helper.bash"
+fi
+
+# Override any path variables to ensure test environment
+LOGS_DIR="$TEST_LOGS_DIR"
+SCRIPTS_DIR="$TEST_DIR/scripts"
+SECURITY_SUITE_HOME="$TEST_DIR"
 
 # Daily scan configuration
 DAILY_SCAN_TOOLS=("clamav")
@@ -41,6 +49,18 @@ LOG_TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 SCAN_LOG="$LOGS_DIR/daily/security_scan_${LOG_TIMESTAMP}.log"
 echo "Daily Security Scan - $(date)" > "$SCAN_LOG"
 echo "=============================" >> "$SCAN_LOG"
+
+# Mock notification function
+send_notification() {
+    echo "Mock notification: $1 - $2"
+    return 0
+}
+
+# Mock log functions
+log_info() {
+    echo "[INFO] $1" | tee -a "$SCAN_LOG"
+    return 0
+}
 
 # Send start notification
 send_notification "🛡️ Daily Security Scan" "Starting daily security scan..." "security-high" "normal"
@@ -55,6 +75,7 @@ for tool in "${SELECTED_SECURITY_TOOLS[@]}"; do
         
         case "$tool" in
             "clamav")
+                # Use the clamav_scan function from test helper
                 clamav_scan "${DAILY_SCAN_DIRS[@]}"
                 scan_result=$?
                 if [ "$scan_result" -ne 0 ]; then
@@ -69,7 +90,7 @@ done
 
 # Final summary
 scan_end=$(date +%s)
-scan_start=$(date -d "$(head -1 "$SCAN_LOG" | cut -d' ' -f4)" +%s 2>/dev/null || echo $(date +%s))
+scan_start=$(date +%s)  # Simplified for test
 scan_duration=$((scan_end - scan_start))
 
 echo "=== DAILY SCAN SUMMARY ===" >> "$SCAN_LOG"
