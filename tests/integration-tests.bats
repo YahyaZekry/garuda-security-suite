@@ -90,9 +90,11 @@ EOF
     run "$TEST_DIR/scripts/security-daily-scan.sh"
     
     [ "$status" -eq 0 ]
-    [ -f "$TEST_LOGS_DIR/daily/security_scan_*.log" ]
-    grep -q "Daily Security Scan" "$TEST_LOGS_DIR/daily/security_scan_*.log"
-    grep -q "DAILY SCAN SUMMARY" "$TEST_LOGS_DIR/daily/security_scan_*.log"
+    # Find the actual log file that was created
+    local log_file=$(find "$TEST_LOGS_DIR/daily" -name "security_scan_*.log" | head -1)
+    [ -f "$log_file" ]
+    grep -q "Daily Security Scan" "$log_file"
+    grep -q "DAILY SCAN SUMMARY" "$log_file"
     
     cleanup_test_environment
 }
@@ -109,10 +111,10 @@ EOF
     # Create EICAR test file
     echo 'X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*' > "$TEST_DIR/eicar.com"
     
-    # Create mock daily scan script
+    # Create mock daily scan script with EICAR detection
     cat > "$TEST_DIR/scripts/security-daily-scan.sh" << 'EOF'
 #!/bin/bash
-# Mock Daily Security Scan Script for Integration Testing
+# Mock Daily Security Scan Script with EICAR Detection
 
 SCRIPT_DIR="$(dirname "$0")"
 source "$SCRIPT_DIR/../configs/security-config.conf"
@@ -163,11 +165,15 @@ EOF
     # Run daily scan
     run "$TEST_DIR/scripts/security-daily-scan.sh"
     
-    [ "$status" -eq 1 ]  # Should detect EICAR and return non-zero
-    [ -f "$TEST_LOGS_DIR/daily/security_scan_*.log" ]
-    [ -f "$TEST_LOGS_DIR/daily/clamav_*.log" ]
-    grep -q "EICAR" "$TEST_LOGS_DIR/daily/clamav_*.log"
-    grep -q "FOUND" "$TEST_LOGS_DIR/daily/clamav_*.log"
+    # Should detect EICAR and return non-zero
+    [ "$status" -eq 1 ]
+    # Find the actual log files that were created
+    local scan_log=$(find "$TEST_LOGS_DIR/daily" -name "security_scan_*.log" | head -1)
+    local clamav_log=$(find "$TEST_LOGS_DIR/daily" -name "clamav_*.log" | head -1)
+    [ -f "$scan_log" ]
+    [ -f "$clamav_log" ]
+    grep -q "EICAR" "$clamav_log"
+    grep -q "FOUND" "$clamav_log"
     
     cleanup_test_environment
 }
@@ -461,10 +467,13 @@ EOF
     
     # Should handle error gracefully
     [ "$status" -ne 0 ]
-    [ -f "$TEST_LOGS_DIR/daily/security_scan_*.log" ]
-    [ -f "$TEST_LOGS_DIR/error/security_errors_*.log" ]
-    grep -q "Directory does not exist" "$TEST_LOGS_DIR/daily/security_scan_*.log"
-    grep -q "WARNING" "$TEST_LOGS_DIR/daily/security_scan_*.log"
+    # Find the actual log files that were created
+    local scan_log=$(find "$TEST_LOGS_DIR/daily" -name "security_scan_*.log" | head -1)
+    local error_log=$(find "$TEST_LOGS_DIR/error" -name "security_errors_*.log" | head -1)
+    [ -f "$scan_log" ]
+    [ -f "$error_log" ]
+    grep -q "Directory does not exist" "$scan_log"
+    grep -q "WARNING" "$scan_log"
     
     cleanup_test_environment
 }
@@ -545,9 +554,11 @@ EOF
     
     # Should handle missing tool gracefully
     [ "$status" -ne 0 ]
-    [ -f "$TEST_LOGS_DIR/daily/security_scan_*.log" ]
-    grep -q "not found" "$TEST_LOGS_DIR/daily/security_scan_*.log"
-    grep -q "WARNING" "$TEST_LOGS_DIR/daily/security_scan_*.log"
+    # Find the actual log file that was created
+    local scan_log=$(find "$TEST_LOGS_DIR/daily" -name "security_scan_*.log" | head -1)
+    [ -f "$scan_log" ]
+    grep -q "not found" "$scan_log"
+    grep -q "WARNING" "$scan_log"
     
     cleanup_test_environment
 }
