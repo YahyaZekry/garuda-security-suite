@@ -19,6 +19,38 @@ CYAN='\033[0;36m'
 WHITE='\033[1;37m'
 NC='\033[0m' # No Color
 
+# Dynamic path resolution
+CURRENT_USER=$(whoami)
+CURRENT_HOME=$(getent passwd "$CURRENT_USER" | cut -d: -f6)
+SECURITY_SUITE_HOME="${SECURITY_SUITE_HOME:-$CURRENT_HOME/security-suite}"
+
+# Path validation function
+validate_path() {
+    local path="$1"
+    local path_type="$2"
+    
+    if [[ ! "$path" =~ ^/ ]]; then
+        echo "Error: $path_type must be absolute path"
+        return 1
+    fi
+    
+    if [[ "$path" =~ \.\. ]]; then
+        echo "Error: $path_type cannot contain parent directory references"
+        return 1
+    fi
+    
+    # Check for dangerous system paths
+    local dangerous_paths=("/etc" "/boot" "/sys" "/proc" "/dev")
+    for dangerous_path in "${dangerous_paths[@]}"; do
+        if [[ "$path" =~ ^$dangerous_path ]]; then
+            echo "Error: $path_type contains dangerous system directory"
+            return 1
+        fi
+    done
+    
+    return 0
+}
+
 # Configuration variables with defaults
 NOTIFICATIONS_ENABLED=true
 NOTIFICATION_URGENCY="normal"
@@ -88,24 +120,24 @@ check_existing_installation() {
     echo -e "${BLUE}🔍 Checking for existing security suite installation...${NC}"
     echo ""
     
-    if [ -d "$HOME/security-suite" ]; then
+    if [ -d "$SECURITY_SUITE_HOME" ]; then
         echo -e "${YELLOW}📁 Found existing security suite directory!${NC}"
         echo ""
         
         # Show what's currently installed
-        if [ -f "$HOME/security-suite/SCRIPT_INDEX.md" ]; then
-            local existing_timestamp=$(grep "Generated:" "$HOME/security-suite/SCRIPT_INDEX.md" | head -1 | cut -d' ' -f2)
+        if [ -f "$SECURITY_SUITE_HOME/SCRIPT_INDEX.md" ]; then
+            local existing_timestamp=$(grep "Generated:" "$SECURITY_SUITE_HOME/SCRIPT_INDEX.md" | head -1 | cut -d' ' -f2)
             echo -e "${CYAN}Current installation timestamp: ${existing_timestamp}${NC}"
         fi
         
-        if [ -f "$HOME/security-suite/configs/security-config.conf" ]; then
+        if [ -f "$SECURITY_SUITE_HOME/configs/security-config.conf" ]; then
             echo -e "${GREEN}✅ Configuration file found${NC}"
         fi
         
-        local script_count=$(find "$HOME/security-suite/scripts" -name "security-*.sh" -type f 2>/dev/null | wc -l)
+        local script_count=$(find "$SECURITY_SUITE_HOME/scripts" -name "security-*.sh" -type f 2>/dev/null | wc -l)
         echo -e "${GREEN}✅ Found $script_count security scripts${NC}"
         
-        local log_count=$(find "$HOME/security-suite/logs" -name "*.log" -type f 2>/dev/null | wc -l)
+        local log_count=$(find "$SECURITY_SUITE_HOME/logs" -name "*.log" -type f 2>/dev/null | wc -l)
         echo -e "${GREEN}✅ Found $log_count log files${NC}"
         
         # Check for existing timers
@@ -133,7 +165,7 @@ check_existing_installation() {
             2)
                 echo -e "${YELLOW}📦 Creating backup of existing installation...${NC}"
                 local backup_name="security-suite-backup-$(date +%Y%m%d_%H%M%S)"
-                mv "$HOME/security-suite" "$HOME/$backup_name"
+                mv "$SECURITY_SUITE_HOME" "$CURRENT_HOME/$backup_name"
                 echo -e "${GREEN}✅ Backup saved as: ~/$backup_name${NC}"
                 return 0
                 ;;
@@ -145,15 +177,15 @@ check_existing_installation() {
                     # Stop and disable any existing timers
                     systemctl --user stop security-*-scan.timer 2>/dev/null || true
                     systemctl --user disable security-*-scan.timer 2>/dev/null || true
-                    rm -f "$HOME/.config/systemd/user/security-*-scan"* 2>/dev/null
+                    rm -f "$CURRENT_HOME/.config/systemd/user/security-*-scan"* 2>/dev/null
                     systemctl --user daemon-reload
                     
-                    rm -rf "$HOME/security-suite"
+                    rm -rf "$SECURITY_SUITE_HOME"
                     echo -e "${GREEN}✅ Old installation removed${NC}"
                 else
                     echo -e "${YELLOW}📦 Creating backup instead...${NC}"
                     local backup_name="security-suite-backup-$(date +%Y%m%d_%H%M%S)"
-                    mv "$HOME/security-suite" "$HOME/$backup_name"
+                    mv "$SECURITY_SUITE_HOME" "$CURRENT_HOME/$backup_name"
                     echo -e "${GREEN}✅ Backup saved as: ~/$backup_name${NC}"
                 fi
                 return 0
@@ -568,6 +600,68 @@ use_default_settings() {
     press_enter_to_continue
 }
 
+# Generate systemd service with dynamic paths
+generate_systemd_service() {
+    local service_name="$1"
+    local script_name="$2"
+    local description="$3"
+    local service_file="$HOME/.config/systemd/user/${service_name}.service"
+    
+    # Validate paths before generation
+    local script_path="$SECURITY_SUITE_HOME/scripts/$script_name"
+    validate_path "$script_path" "Script path" || return 1
+    
+    # Ensure systemd user directory exists
+    mkdir -p "$HOME/.config/systemd/user"
+    
+    cat > "$service_file" << EOF
+[Unit]
+Description=$description
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=$script_path
+WorkingDirectory=$SECURITY_SUITE_HOME/scripts
+StandardOutput=journal
+StandardError=journal
+Environment=USER=$CURRENT_USER
+Environment=HOME=$CURRENT_HOME
+Environment=SECURITY_SUITE_HOME=$SECURITY_SUITE_HOME
+
+[Install]
+WantedBy=default.target
+EOF
+    
+    chmod 644 "$service_file"
+    show_success "Created $service_name service"
+}
+
+# Generate systemd timer
+generate_systemd_timer() {
+    local timer_name="$1"
+    local service_name="$2"
+    local description="$3"
+    local schedule="$4"
+    local timer_file="$HOME/.config/systemd/user/${timer_name}.timer"
+    
+    cat > "$timer_file" << EOF
+[Unit]
+Description=$description
+Requires=$service_name.service
+
+[Timer]
+OnCalendar=$schedule
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+    
+    chmod 644 "$timer_file"
+    show_success "Created $timer_name timer"
+}
+
 # Generate systemd user timers
 generate_systemd_timers() {
     if [ "$ENABLE_SCHEDULING" != "true" ]; then
@@ -576,99 +670,21 @@ generate_systemd_timers() {
     
     show_progress "Creating systemd user timer configuration"
     
-    # Ensure systemd user directory exists
-    mkdir -p "$HOME/.config/systemd/user"
+    # Validate security suite home directory
+    validate_path "$SECURITY_SUITE_HOME" "Security suite home" || return 1
     
     # Create daily scan service and timer
-    cat > "$HOME/.config/systemd/user/security-daily-scan.service" << SERVICE_END
-[Unit]
-Description=Daily Security Scan
-After=network-online.target
-
-[Service]
-Type=oneshot
-ExecStart=/home/frieso/security-suite/scripts/security-daily-scan.sh
-WorkingDirectory=/home/frieso/security-suite/scripts
-StandardOutput=journal
-StandardError=journal
-
-[Install]
-WantedBy=default.target
-SERVICE_END
-
-    cat > "$HOME/.config/systemd/user/security-daily-scan.timer" << TIMER_END
-[Unit]
-Description=Daily Security Scan Timer
-Requires=security-daily-scan.service
-
-[Timer]
-OnCalendar=*-*-* $DAILY_TIME:00
-Persistent=true
-
-[Install]
-WantedBy=timers.target
-TIMER_END
-
+    generate_systemd_service "security-daily-scan" "security-daily-scan.sh" "Daily Security Scan"
+    generate_systemd_timer "security-daily-scan" "security-daily-scan" "Daily Security Scan Timer" "*-*-* $DAILY_TIME:00"
+    
     # Create weekly scan service and timer
-    cat > "$HOME/.config/systemd/user/security-weekly-scan.service" << SERVICE_END
-[Unit]
-Description=Weekly Security Scan
-After=network-online.target
-
-[Service]
-Type=oneshot
-ExecStart=/home/frieso/security-suite/scripts/security-weekly-scan.sh
-WorkingDirectory=/home/frieso/security-suite/scripts
-StandardOutput=journal
-StandardError=journal
-
-[Install]
-WantedBy=default.target
-SERVICE_END
-
-    cat > "$HOME/.config/systemd/user/security-weekly-scan.timer" << TIMER_END
-[Unit]
-Description=Weekly Security Scan Timer
-Requires=security-weekly-scan.service
-
-[Timer]
-OnCalendar=$WEEKLY_DAY *-*-* $WEEKLY_TIME:00
-Persistent=true
-
-[Install]
-WantedBy=timers.target
-TIMER_END
-
+    generate_systemd_service "security-weekly-scan" "security-weekly-scan.sh" "Weekly Security Scan"
+    generate_systemd_timer "security-weekly-scan" "security-weekly-scan" "Weekly Security Scan Timer" "$WEEKLY_DAY *-*-* $WEEKLY_TIME:00"
+    
     # Create monthly scan service and timer
-    cat > "$HOME/.config/systemd/user/security-monthly-scan.service" << SERVICE_END
-[Unit]
-Description=Monthly Security Scan
-After=network-online.target
-
-[Service]
-Type=oneshot
-ExecStart=/home/frieso/security-suite/scripts/security-monthly-scan.sh
-WorkingDirectory=/home/frieso/security-suite/scripts
-StandardOutput=journal
-StandardError=journal
-
-[Install]
-WantedBy=default.target
-SERVICE_END
-
-    cat > "$HOME/.config/systemd/user/security-monthly-scan.timer" << TIMER_END
-[Unit]
-Description=Monthly Security Scan Timer
-Requires=security-monthly-scan.service
-
-[Timer]
-OnCalendar=*-*-$MONTHLY_DAY $MONTHLY_TIME:00
-Persistent=true
-
-[Install]
-WantedBy=timers.target
-TIMER_END
-
+    generate_systemd_service "security-monthly-scan" "security-monthly-scan.sh" "Monthly Security Scan"
+    generate_systemd_timer "security-monthly-scan" "security-monthly-scan" "Monthly Security Scan Timer" "*-*-$MONTHLY_DAY $MONTHLY_TIME:00"
+    
     show_success "Systemd timer configuration created"
 }
 
@@ -692,8 +708,14 @@ enable_systemd_timers() {
     read -p "Enable timers to run even when you're logged out? (Y/n): " -n 1 -r
     echo ""
     if [[ ! $REPLY =~ ^[Nn]$ ]]; then
-        sudo loginctl enable-linger frieso
-        echo -e "${GREEN}✅ User linger enabled - timers will run when logged out${NC}"
+        # Validate username before using sudo
+        if [[ ! "$CURRENT_USER" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+            show_error "Invalid username format: $CURRENT_USER"
+            return 1
+        fi
+        
+        sudo loginctl enable-linger "$CURRENT_USER"
+        echo -e "${GREEN}✅ User linger enabled for $CURRENT_USER - timers will run when logged out${NC}"
     fi
     
     show_success "Automated scheduling configured and enabled"
@@ -709,8 +731,11 @@ run_comprehensive_final_test() {
     echo ""
     
     local test_timestamp=$(date +"%Y%m%d_%H%M%S")
-    local final_test_log="$HOME/security-suite/logs/manual/final_test_${test_timestamp}.log"
+    local final_test_log="$SECURITY_SUITE_HOME/logs/manual/final_test_${test_timestamp}.log"
     local test_failures=0
+    
+    # Ensure log directory exists before writing
+    mkdir -p "$SECURITY_SUITE_HOME/logs/manual"
     
     echo "COMPREHENSIVE SECURITY SUITE TEST - $(date)" > "$final_test_log"
     echo "=======================================" >> "$final_test_log"
@@ -720,7 +745,7 @@ run_comprehensive_final_test() {
     echo -e "${YELLOW}📁 Testing directory structure...${NC}"
     local required_dirs=("scripts" "logs" "configs" "backups" "logs/daily" "logs/weekly" "logs/monthly" "logs/manual")
     for dir in "${required_dirs[@]}"; do
-        if [ -d "$HOME/security-suite/$dir" ]; then
+        if [ -d "$SECURITY_SUITE_HOME/$dir" ]; then
             echo -e "  ${GREEN}✅ $dir${NC}"
             echo "✅ Directory exists: $dir" >> "$final_test_log"
         else
@@ -735,7 +760,7 @@ run_comprehensive_final_test() {
     echo -e "${YELLOW}📄 Testing configuration files...${NC}"
     local config_files=("configs/security-config.conf" "scripts/notification-functions.sh")
     for file in "${config_files[@]}"; do
-        if [ -f "$HOME/security-suite/$file" ]; then
+        if [ -f "$SECURITY_SUITE_HOME/$file" ]; then
             echo -e "  ${GREEN}✅ $file${NC}"
             echo "✅ Configuration file exists: $file" >> "$final_test_log"
         else
@@ -750,7 +775,7 @@ run_comprehensive_final_test() {
     echo -e "${YELLOW}🔧 Testing security scripts...${NC}"
     local scripts=("security-daily-scan.sh" "security-weekly-scan.sh" "security-monthly-scan.sh" "security-test.sh")
     for script in "${scripts[@]}"; do
-        if [ -x "$HOME/security-suite/scripts/$script" ]; then
+        if [ -x "$SECURITY_SUITE_HOME/scripts/$script" ]; then
             echo -e "  ${GREEN}✅ $script (executable)${NC}"
             echo "✅ Script exists and executable: $script" >> "$final_test_log"
         else
@@ -887,23 +912,25 @@ fi
 
 # Create directory structure
 show_progress "Creating organized directory structure"
-mkdir -p "$HOME/security-suite/{scripts,logs,configs,backups}"
-mkdir -p "$HOME/security-suite/scripts/generated-${SETUP_DATE}"
-mkdir -p "$HOME/security-suite/logs/{daily,weekly,monthly,manual}"
+mkdir -p "$SECURITY_SUITE_HOME"/{scripts,logs,configs,backups}
+mkdir -p "$SECURITY_SUITE_HOME/scripts/generated-${SETUP_DATE}"
+mkdir -p "$SECURITY_SUITE_HOME/logs"/{daily,weekly,monthly,manual}
 
 # Create configuration file with user settings
 show_progress "Creating configuration file with your settings"
-cat > "$HOME/security-suite/configs/security-config.conf" << CONFIG_END
+cat > "$SECURITY_SUITE_HOME/configs/security-config.conf" << CONFIG_END
 # Security Suite Configuration
 # Generated on: $SETUP_TIMESTAMP
 # Interactive Configuration: User Customized
 
-# Directory paths
-SECURITY_HOME="\$HOME/security-suite"
-SCRIPTS_DIR="\$SECURITY_HOME/scripts"
-LOGS_DIR="\$SECURITY_HOME/logs"
-CONFIGS_DIR="\$SECURITY_HOME/configs"
-BACKUPS_DIR="\$SECURITY_HOME/backups"
+# Dynamic path configuration
+SECURITY_SUITE_HOME="$SECURITY_SUITE_HOME"
+SCRIPTS_DIR="\$SECURITY_SUITE_HOME/scripts"
+LOGS_DIR="\$SECURITY_SUITE_HOME/logs"
+CONFIGS_DIR="\$SECURITY_SUITE_HOME/configs"
+BACKUPS_DIR="\$SECURITY_SUITE_HOME/backups"
+CURRENT_USER="$CURRENT_USER"
+CURRENT_HOME="$CURRENT_HOME"
 
 # Notification settings
 NOTIFICATIONS_ENABLED=$NOTIFICATIONS_ENABLED
@@ -978,7 +1005,7 @@ fi
 
 # Generate notification support functions
 show_progress "Generating notification support functions"
-cat > "$HOME/security-suite/scripts/notification-functions.sh" << 'NOTIF_END'
+cat > "$SECURITY_SUITE_HOME/scripts/notification-functions.sh" << 'NOTIF_END'
 #!/bin/bash
 # Notification Support Functions
 # Version: 5.0 - Complete setup with scheduling
@@ -1006,24 +1033,24 @@ export -f check_notification_support
 export -f send_notification
 NOTIF_END
 
-chmod +x "$HOME/security-suite/scripts/notification-functions.sh"
+chmod +x "$SECURITY_SUITE_HOME/scripts/notification-functions.sh"
 
 # Generate enhanced test script
 show_progress "Creating enhanced test script"
-TEST_SCRIPT="$HOME/security-suite/scripts/security-test.sh"
+TEST_SCRIPT="$SECURITY_SUITE_HOME/scripts/security-test.sh"
 cat > "$TEST_SCRIPT" << 'TEST_END'
 #!/bin/bash
 # Enhanced Security Test Script
 # Generated with Complete Setup V5.0
 
 # Load configuration
-if [ -f "$HOME/security-suite/configs/security-config.conf" ]; then
-    source "$HOME/security-suite/configs/security-config.conf"
+if [ -f "$SECURITY_SUITE_HOME/configs/security-config.conf" ]; then
+    source "$SECURITY_SUITE_HOME/configs/security-config.conf"
 fi
 
 # Load notification functions
-if [ -f "$HOME/security-suite/scripts/notification-functions.sh" ]; then
-    source "$HOME/security-suite/scripts/notification-functions.sh"
+if [ -f "$SECURITY_SUITE_HOME/scripts/notification-functions.sh" ]; then
+    source "$SECURITY_SUITE_HOME/scripts/notification-functions.sh"
 fi
 
 # Colors
@@ -1046,7 +1073,7 @@ send_notification "🛡️ Security Test" "Starting enhanced security test..." "
 
 # Create test log file
 timestamp=$(date +"%Y%m%d_%H%M%S")
-TEST_LOG="$HOME/security-suite/logs/manual/enhanced_test_${timestamp}.log"
+TEST_LOG="$SECURITY_SUITE_HOME/logs/manual/enhanced_test_${timestamp}.log"
 
 echo -e "${YELLOW}🧪 Testing security tools with EICAR test signature...${NC}"
 echo ""
@@ -1113,10 +1140,15 @@ chmod +x "$TEST_SCRIPT"
 # Create basic scan scripts (simplified versions)
 show_progress "Creating security scan scripts"
 
-# Create daily scan script
-ln -sf "$(pwd)/security-test.sh" "$HOME/security-suite/scripts/security-daily-scan.sh" 2>/dev/null || cp "$TEST_SCRIPT" "$HOME/security-suite/scripts/security-daily-scan.sh"
-ln -sf "$(pwd)/security-test.sh" "$HOME/security-suite/scripts/security-weekly-scan.sh" 2>/dev/null || cp "$TEST_SCRIPT" "$HOME/security-suite/scripts/security-weekly-scan.sh"
-ln -sf "$(pwd)/security-test.sh" "$HOME/security-suite/scripts/security-monthly-scan.sh" 2>/dev/null || cp "$TEST_SCRIPT" "$HOME/security-suite/scripts/security-monthly-scan.sh"
+# Create daily, weekly, and monthly scan scripts by copying the test script
+cp "$TEST_SCRIPT" "$SECURITY_SUITE_HOME/scripts/security-daily-scan.sh"
+cp "$TEST_SCRIPT" "$SECURITY_SUITE_HOME/scripts/security-weekly-scan.sh"
+cp "$TEST_SCRIPT" "$SECURITY_SUITE_HOME/scripts/security-monthly-scan.sh"
+
+# Make sure they're executable
+chmod +x "$SECURITY_SUITE_HOME/scripts/security-daily-scan.sh"
+chmod +x "$SECURITY_SUITE_HOME/scripts/security-weekly-scan.sh"
+chmod +x "$SECURITY_SUITE_HOME/scripts/security-monthly-scan.sh"
 
 show_success "Security scan scripts created"
 
@@ -1146,7 +1178,7 @@ fi
 echo ""
 
 echo -e "${YELLOW}🚀 Your complete security suite has been configured!${NC}"
-echo -e "${BLUE}📖 Configuration saved to: ~/security-suite/configs/security-config.conf${NC}"
+echo -e "${BLUE}📖 Configuration saved to: $SECURITY_SUITE_HOME/configs/security-config.conf${NC}"
 echo ""
 
 # Run comprehensive final test
@@ -1175,7 +1207,7 @@ if [ "$ENABLE_SCHEDULING" = "true" ]; then
     echo -e "   • Start timer: ${WHITE}systemctl --user start security-daily-scan.timer${NC}"
 else
     echo -e "${YELLOW}📅 Manual scheduling - Run scans manually:${NC}"
-    echo -e "   • ${WHITE}cd ~/security-suite/scripts${NC}"
+    echo -e "   • ${WHITE}cd $SECURITY_SUITE_HOME/scripts${NC}"
     echo -e "   • ${WHITE}./security-daily-scan.sh${NC}"
     echo -e "   • ${WHITE}./security-weekly-scan.sh${NC}"
     echo -e "   • ${WHITE}./security-monthly-scan.sh${NC}"
@@ -1184,7 +1216,7 @@ fi
 echo -e "${CYAN}================================================================${NC}"
 
 # Mark setup completion
-mkdir -p "$HOME/security-suite/logs/manual"
-echo "$(date): Complete interactive setup V5.0 completed successfully with scheduling: $ENABLE_SCHEDULING" >> "$HOME/security-suite/logs/manual/setup.log"
+mkdir -p "$SECURITY_SUITE_HOME/logs/manual"
+echo "$(date): Complete interactive setup V5.0 completed successfully with scheduling: $ENABLE_SCHEDULING" >> "$SECURITY_SUITE_HOME/logs/manual/setup.log"
 
 exit 0
