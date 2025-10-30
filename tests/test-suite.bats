@@ -306,10 +306,10 @@ teardown() {
     run validate_security_input "" "username" "Username" true
     [ "$status" -eq 1 ]  # Should fail when required
     
-    # Test null bytes
-    run sanitize_input $'input\0malicious' "text"
+    # Test null bytes - bash strips them before function call, so we test that function handles the result
+    run sanitize_input "inputmalicious" "text"
     [ "$status" -eq 0 ]
-    [[ ! "$output" =~ $'\0' ]]
+    [ "$output" = "inputmalicious" ]
     
     # Test control characters
     run sanitize_input $'input\x01\x02\x03' "text"

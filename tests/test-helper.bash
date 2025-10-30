@@ -275,8 +275,15 @@ validate_security_input() {
 check_dangerous_patterns() {
     local input="$1"
     
-    # Check for dangerous patterns
-    if [[ "$input" =~ \.\./\.\. ]] || [[ "$input" =~ \;rm\ -rf ]] || [[ "$input" =~ \&\&\ dd ]] || [[ "$input" =~ \|rm\ -rf ]] || [[ "$input" =~ \$\(rm\ -rf ]]; then
+    # Check for dangerous patterns with more comprehensive regex
+    if [[ "$input" =~ \.\./\.\. ]] ||
+       [[ "$input" =~ \;rm\ -rf ]] ||
+       [[ "$input" =~ \&\&\ dd ]] ||
+       [[ "$input" =~ \|rm\ -rf ]] ||
+       [[ "$input" =~ \$\(rm\ -rf ]] ||
+       [[ "$input" =~ \&\&\ dd\ if=/dev/zero ]] ||
+       [[ "$input" =~ \|rm\ -rf\ / ]] ||
+       [[ "$input" =~ rm\ -rf\ / ]]; then
         echo "Dangerous pattern detected in input" >&2
         return 1
     fi
@@ -288,13 +295,17 @@ sanitize_input() {
     local input="$1"
     local type="$2"
     
-    # Remove null bytes and control characters
+    # Remove null bytes and control characters more comprehensively
+    # First remove null bytes explicitly
     input="${input//$'\0'/}"
-    input="${input//$'\x01'/}"
-    input="${input//$'\x02'/}"
-    input="${input//$'\x03'/}"
+    # Remove control characters (ASCII 0-31) using tr
+    input=$(echo -n "$input" | tr -d '\000-\037')
+    # Additional cleanup for any remaining problematic characters
+    input="${input//[$'\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0b\x0c\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f']/}"
+    # Final null byte cleanup
+    input="${input//$'\0'/}"
     
-    echo "$input"
+    echo -n "$input"
     return 0
 }
 
