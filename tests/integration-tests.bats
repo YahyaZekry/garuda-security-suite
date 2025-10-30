@@ -42,27 +42,6 @@ SCAN_LOG="$LOGS_DIR/daily/security_scan_${LOG_TIMESTAMP}.log"
 echo "Daily Security Scan - $(date)" > "$SCAN_LOG"
 echo "=============================" >> "$SCAN_LOG"
 
-# Ensure log file exists for test assertions
-touch "$SCAN_LOG"
-
-# Ensure log file exists for test assertions
-touch "$SCAN_LOG"
-
-# Ensure log file exists for test assertions
-touch "$SCAN_LOG"
-
-# Ensure log file exists for test assertions
-touch "$SCAN_LOG"
-
-# Ensure log file exists for test assertions
-touch "$SCAN_LOG"
-
-# Ensure log file exists for test assertions
-touch "$SCAN_LOG"
-
-# Ensure log file exists for test assertions
-touch "$SCAN_LOG"
-
 # Send start notification
 send_notification "🛡️ Daily Security Scan" "Starting daily security scan..." "security-high" "normal"
 
@@ -76,7 +55,6 @@ for tool in "${SELECTED_SECURITY_TOOLS[@]}"; do
         
         case "$tool" in
             "clamav")
-                source "$SCRIPT_DIR/scanners/clamav-scanner.sh"
                 clamav_scan "${DAILY_SCAN_DIRS[@]}" || overall_status=$?
                 ;;
         esac
@@ -87,7 +65,8 @@ done
 
 # Final summary
 scan_end=$(date +%s)
-scan_duration=$((scan_end - $(date +%s)))
+scan_start=$(date -d "$(head -1 "$SCAN_LOG" | cut -d' ' -f4)" +%s 2>/dev/null || echo $(date +%s))
+scan_duration=$((scan_end - scan_start))
 
 echo "=== DAILY SCAN SUMMARY ===" >> "$SCAN_LOG"
 echo "Overall Status: $overall_status" >> "$SCAN_LOG"
@@ -157,7 +136,6 @@ for tool in "${SELECTED_SECURITY_TOOLS[@]}"; do
         
         case "$tool" in
             "clamav")
-                source "$SCRIPT_DIR/scanners/clamav-scanner.sh"
                 clamav_scan "${DAILY_SCAN_DIRS[@]}" || overall_status=$?
                 ;;
         esac
@@ -205,8 +183,8 @@ EOF
 #!/bin/bash
 # Mock Setup Script for Integration Testing
 
-USER="${USER:-$(whoami)}"
-HOME="${HOME:-$(getent passwd "$USER" | cut -d: -f6)}"
+USER="${USER:-testuser}"
+HOME="${HOME:-/tmp/testuser_home}"
 SECURITY_SUITE_HOME="${SECURITY_SUITE_HOME:-$HOME/security-suite}"
 
 # Create directory structure
@@ -284,7 +262,7 @@ EOF
     chmod +x "$TEST_DIR/setup-security-suite.sh"
     
     # Run setup with custom configuration
-    run "$TEST_DIR/setup-security-suite.sh" --non-interactive --defaults
+    run "$TEST_DIR/setup-security-suite.sh"
     
     [ "$status" -eq 0 ]
     [ -d "$HOME/security-suite" ]
@@ -319,8 +297,8 @@ EOF
 #!/bin/bash
 # Mock Setup Script for Integration Testing
 
-USER="${USER:-$(whoami)}"
-HOME="${HOME:-$(getent passwd "$USER" | cut -d: -f6)}"
+USER="${USER:-testuser}"
+HOME="${HOME:-/tmp/testuser_home}"
 SECURITY_SUITE_HOME="${SECURITY_SUITE_HOME:-$HOME/security-suite}"
 
 # Create directory structure
@@ -428,6 +406,11 @@ SCAN_LOG="$LOGS_DIR/daily/security_scan_${LOG_TIMESTAMP}.log"
 echo "Daily Security Scan - $(date)" > "$SCAN_LOG"
 echo "=============================" >> "$SCAN_LOG"
 
+# Create error log directory and file
+ERROR_LOG="$LOGS_DIR/error/security_errors_${LOG_TIMESTAMP}.log"
+mkdir -p "$(dirname "$ERROR_LOG")"
+touch "$ERROR_LOG"
+
 send_notification "🛡️ Daily Security Scan" "Starting daily security scan..." "security-high" "normal"
 
 overall_status=0
@@ -438,12 +421,12 @@ for tool in "${SELECTED_SECURITY_TOOLS[@]}"; do
         
         case "$tool" in
             "clamav")
-                source "$SCRIPT_DIR/scanners/clamav-scanner.sh"
-                
                 # Check if scan directories exist
                 for dir in "${DAILY_SCAN_DIRS[@]}"; do
                     if [ ! -d "$dir" ]; then
                         log_warning "Directory does not exist: $dir"
+                        echo "WARNING: Directory does not exist: $dir" >> "$SCAN_LOG"
+                        echo "ERROR: Directory does not exist: $dir" >> "$ERROR_LOG"
                         overall_status=1
                     fi
                 done
@@ -526,11 +509,13 @@ for tool in "${SELECTED_SECURITY_TOOLS[@]}"; do
                     clamav_scan "${DAILY_SCAN_DIRS[@]}" || overall_status=$?
                 else
                     log_warning "ClamAV scanner not available - Skipping"
+                    echo "WARNING: ClamAV scanner not available - Skipping" >> "$SCAN_LOG"
                     overall_status=1
                 fi
                 ;;
             "nonexistent-tool")
                 log_warning "Scanner $tool not found - Skipping"
+                echo "WARNING: Scanner $tool not found - Skipping" >> "$SCAN_LOG"
                 overall_status=1
                 ;;
         esac

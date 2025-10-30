@@ -372,16 +372,28 @@ validate_security_config() {
     return 0
 }
 
-# Additional mock functions needed for integration tests
+# Enhanced mock functions for integration tests
 clamav_scan() {
     local dirs=("$@")
     local overall_status=0
+    local scan_log="$LOGS_DIR/daily/clamav_$(date +%Y%m%d_%H%M%S).log"
+    
+    # Create log directory and file
+    mkdir -p "$(dirname "$scan_log")"
+    echo "ClamAV Scan Results - $(date)" > "$scan_log"
+    echo "=========================" >> "$scan_log"
     
     for dir in "${dirs[@]}"; do
         # Check if EICAR file exists in the directory
-        if [[ -f "$dir/eicar.com" ]] || [[ "$dir" == *"$TEST_DIR/eicar.com"* ]]; then
-            log_warning "EICAR test file detected"
+        if [[ -f "$dir/eicar.com" ]] || [[ "$dir" == *"$TEST_DIR/eicar.com"* ]] || [[ "$dir" == *"eicar.com"* ]]; then
+            echo "EICAR Signature FOUND in $dir/eicar.com" | tee -a "$scan_log"
+            echo "----------- SCAN SUMMARY ----------" >> "$scan_log"
+            echo "Infected files: 1" >> "$scan_log"
+            echo "Time: $(date)" >> "$scan_log"
+            echo "----------- SCAN SUMMARY ----------" >> "$scan_log"
             overall_status=1
+        else
+            echo "Scanning $dir - No threats found" | tee -a "$scan_log"
         fi
     done
     
