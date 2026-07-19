@@ -6,7 +6,7 @@ source "$(dirname "$0")/common-functions.sh"
 
 # Get security suite home directory
 SCRIPT_DIR="$(dirname "$0")"
-SECURITY_SUITE_HOME="$(dirname "$SCRIPT_DIR")"
+AEGIS_HOME="$(dirname "$SCRIPT_DIR")"
 
 # Performance test configuration
 TEST_DURATION=300  # 5 minutes
@@ -14,7 +14,7 @@ MEMORY_SAMPLE_INTERVAL=10  # seconds
 CPU_SAMPLE_INTERVAL=5   # seconds
 MAX_ACCEPTABLE_MEMORY_MB=1000  # 1GB
 MAX_ACCEPTABLE_CPU_PERCENT=80
-TEST_LOG="$SECURITY_SUITE_HOME/logs/performance-test-$(date +%Y%m%d_%H%M%S).log"
+TEST_LOG="$AEGIS_HOME/logs/performance-test-$(date +%Y%m%d_%H%M%S).log"
 
 # Test results
 declare -A MEMORY_SAMPLES
@@ -26,7 +26,7 @@ init_performance_test() {
     log_info "Initializing performance test..."
     
     # Create logs directory
-    mkdir -p "$SECURITY_SUITE_HOME/logs"
+    mkdir -p "$AEGIS_HOME/logs"
     
     # Initialize test log
     {
@@ -87,7 +87,7 @@ test_behavioral_monitoring() {
     echo "Test Started: $(date)" >> "$TEST_LOG"
     
     # Start optimized behavioral monitoring
-    local monitor_log="$SECURITY_SUITE_HOME/logs/behavioral-test-$(date +%Y%m%d_%H%M%S).log"
+    local monitor_log="$AEGIS_HOME/logs/behavioral-test-$(date +%Y%m%d_%H%M%S).log"
     "$SCRIPT_DIR/behavioral-monitor-optimized.sh" 300 30 > "$monitor_log" 2>&1 &
     local monitor_pid=$!
     
@@ -158,7 +158,7 @@ test_threat_intelligence() {
     echo "Test Started: $(date)" >> "$TEST_LOG"
     
     # Start optimized threat intelligence update
-    local threat_log="$SECURITY_SUITE_HOME/logs/threat-test-$(date +%Y%m%d_%H%M%S).log"
+    local threat_log="$AEGIS_HOME/logs/threat-test-$(date +%Y%m%d_%H%M%S).log"
     "$SCRIPT_DIR/threat-intelligence-optimized.sh" update > "$threat_log" 2>&1 &
     local threat_pid=$!
     
@@ -229,8 +229,8 @@ test_web_dashboard() {
     echo "Test Started: $(date)" >> "$TEST_LOG"
     
     # Start optimized web dashboard
-    local dashboard_log="$SECURITY_SUITE_HOME/logs/dashboard-test-$(date +%Y%m%d_%H%M%S).log"
-    cd "$SECURITY_SUITE_HOME/web-dashboard"
+    local dashboard_log="$AEGIS_HOME/logs/dashboard-test-$(date +%Y%m%d_%H%M%S).log"
+    cd "$AEGIS_HOME/web-dashboard"
     python3 app.py > "$dashboard_log" 2>&1 &
     local dashboard_pid=$!
     
@@ -304,7 +304,7 @@ test_memory_monitor() {
     echo "Test Started: $(date)" >> "$TEST_LOG"
     
     # Start memory monitor
-    local monitor_log="$SECURITY_SUITE_HOME/logs/memory-monitor-test-$(date +%Y%m%d_%H%M%S).log"
+    local monitor_log="$AEGIS_HOME/logs/memory-monitor-test-$(date +%Y%m%d_%H%M%S).log"
     "$SCRIPT_DIR/memory-monitor.sh" check > "$monitor_log" 2>&1 &
     local monitor_pid=$!
     
@@ -375,7 +375,7 @@ test_database_performance() {
     echo "Test Started: $(date)" >> "$TEST_LOG"
     
     # Test behavioral database
-    local behavioral_db="$SECURITY_SUITE_HOME/configs/behavioral_analysis/behavioral_data.db"
+    local behavioral_db="$AEGIS_HOME/configs/behavioral_analysis/behavioral_data.db"
     if [ -f "$behavioral_db" ]; then
         echo "Testing behavioral database performance..." >> "$TEST_LOG"
         
@@ -406,7 +406,7 @@ test_database_performance() {
     fi
     
     # Test threat intelligence database
-    local threat_db="$SECURITY_SUITE_HOME/configs/threat_intelligence/ioc_database.db"
+    local threat_db="$AEGIS_HOME/configs/threat_intelligence/ioc_database.db"
     if [ -f "$threat_db" ]; then
         echo "Testing threat intelligence database performance..." >> "$TEST_LOG"
         
@@ -446,7 +446,7 @@ test_database_performance() {
 generate_performance_report() {
     log_info "Generating performance report..."
     
-    local report_file="$SECURITY_SUITE_HOME/logs/performance-report-$(date +%Y%m%d_%H%M%S).txt"
+    local report_file="$AEGIS_HOME/logs/performance-report-$(date +%Y%m%d_%H%M%S).txt"
     
     {
         echo "Aegis Security Suite Performance Report"

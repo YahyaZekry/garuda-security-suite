@@ -126,50 +126,50 @@ sudo rkhunter --propupd
 
 ```bash
 # Create base directory
-mkdir -p ~/security-suite
+mkdir -p ~/aegis-security-suite
 
 # Create subdirectories
-mkdir -p ~/security-suite/{scripts,configs,logs,backups}
-mkdir -p ~/security-suite/logs/{daily,weekly,monthly,manual,error,audit}
-mkdir -p ~/security-suite/scripts/scanners
+mkdir -p ~/aegis-security-suite/{scripts,configs,logs,backups}
+mkdir -p ~/aegis-security-suite/logs/{daily,weekly,monthly,manual,error,audit}
+mkdir -p ~/aegis-security-suite/scripts/scanners
 
 # Set permissions
-chmod 700 ~/security-suite
-chmod 700 ~/security-suite/scripts
-chmod 700 ~/security-suite/configs
-chmod 700 ~/security-suite/logs
-chmod 700 ~/security-suite/backups
+chmod 700 ~/aegis-security-suite
+chmod 700 ~/aegis-security-suite/scripts
+chmod 700 ~/aegis-security-suite/configs
+chmod 700 ~/aegis-security-suite/logs
+chmod 700 ~/aegis-security-suite/backups
 ```
 
 #### 3. Copy Files
 
 ```bash
 # Copy script files
-cp -r scripts/* ~/security-suite/scripts/
-cp -r web-dashboard/* ~/security-suite/web-dashboard/
-cp -r configs/* ~/security-suite/configs/
+cp -r scripts/* ~/aegis-security-suite/scripts/
+cp -r web-dashboard/* ~/aegis-security-suite/web-dashboard/
+cp -r configs/* ~/aegis-security-suite/configs/
 
 # Set script permissions
-chmod 700 ~/security-suite/scripts/*.sh
-chmod 700 ~/security-suite/scripts/scanners/*.sh
+chmod 700 ~/aegis-security-suite/scripts/*.sh
+chmod 700 ~/aegis-security-suite/scripts/scanners/*.sh
 
 # Set configuration permissions
-chmod 600 ~/security-suite/configs/security-config.conf
+chmod 600 ~/aegis-security-suite/configs/security-config.conf
 ```
 
 #### 4. Configure Security Suite
 
-Edit `~/security-suite/configs/security-config.conf`:
+Edit `~/aegis-security-suite/configs/security-config.conf`:
 
 ```bash
 # Security Suite Configuration
 
 # Dynamic path configuration
-SECURITY_SUITE_HOME="$HOME/security-suite"
-SCRIPTS_DIR="$SECURITY_SUITE_HOME/scripts"
-LOGS_DIR="$SECURITY_SUITE_HOME/logs"
-CONFIGS_DIR="$SECURITY_SUITE_HOME/configs"
-BACKUPS_DIR="$SECURITY_SUITE_HOME/backups"
+AEGIS_HOME="$HOME/aegis-security-suite"
+SCRIPTS_DIR="$AEGIS_HOME/scripts"
+LOGS_DIR="$AEGIS_HOME/logs"
+CONFIGS_DIR="$AEGIS_HOME/configs"
+BACKUPS_DIR="$AEGIS_HOME/backups"
 CURRENT_USER="$(whoami)"
 CURRENT_HOME="$HOME"
 
@@ -222,8 +222,8 @@ After=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=$SECURITY_SUITE_HOME/scripts/security-daily-scan.sh
-WorkingDirectory=$SECURITY_SUITE_HOME/scripts
+ExecStart=$AEGIS_HOME/scripts/security-daily-scan.sh
+WorkingDirectory=$AEGIS_HOME/scripts
 StandardOutput=journal
 StandardError=journal
 Environment=USER=$USER
@@ -255,8 +255,8 @@ After=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=$SECURITY_SUITE_HOME/scripts/security-weekly-scan.sh
-WorkingDirectory=$SECURITY_SUITE_HOME/scripts
+ExecStart=$AEGIS_HOME/scripts/security-weekly-scan.sh
+WorkingDirectory=$AEGIS_HOME/scripts
 StandardOutput=journal
 StandardError=journal
 Environment=USER=$USER
@@ -288,8 +288,8 @@ After=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=$SECURITY_SUITE_HOME/scripts/security-monthly-scan.sh
-WorkingDirectory=$SECURITY_SUITE_HOME/scripts
+ExecStart=$AEGIS_HOME/scripts/security-monthly-scan.sh
+WorkingDirectory=$AEGIS_HOME/scripts
 StandardOutput=journal
 StandardError=journal
 Environment=USER=$USER
@@ -337,10 +337,10 @@ To install to a custom directory:
 
 ```bash
 # Set custom installation directory
-export SECURITY_SUITE_HOME="$HOME/security-suite"
+export AEGIS_HOME="$HOME/aegis-security-suite"
 
 # Run setup with custom path
-./setup-aegis.sh --install-dir "$SECURITY_SUITE_HOME"
+./setup-aegis.sh --install-dir "$AEGIS_HOME"
 ```
 
 #### Alternative: Service Template Processing
@@ -413,9 +413,9 @@ sudo -v
 id
 
 # Fix directory permissions
-chmod 700 ~/security-suite
-chmod 600 ~/security-suite/configs/security-config.conf
-chmod 700 ~/security-suite/scripts/*.sh
+chmod 700 ~/aegis-security-suite
+chmod 600 ~/aegis-security-suite/configs/security-config.conf
+chmod 700 ~/aegis-security-suite/scripts/*.sh
 ```
 
 #### 2. Missing Security Tools
@@ -479,7 +479,7 @@ sudo pacman -S dunst
 notify-send "Test" "This is a test notification"
 
 # Check notification settings in config
-grep NOTIFICATIONS_ENABLED ~/security-suite/configs/security-config.conf
+grep NOTIFICATIONS_ENABLED ~/aegis-security-suite/configs/security-config.conf
 ```
 
 #### 5. Log File Issues
@@ -489,17 +489,17 @@ grep NOTIFICATIONS_ENABLED ~/security-suite/configs/security-config.conf
 **Solutions**:
 ```bash
 # Check log directory permissions
-ls -la ~/security-suite/logs/
+ls -la ~/aegis-security-suite/logs/
 
 # Create missing directories
-mkdir -p ~/security-suite/logs/{daily,weekly,monthly,manual,error,audit}
+mkdir -p ~/aegis-security-suite/logs/{daily,weekly,monthly,manual,error,audit}
 
 # Fix permissions
-chmod 700 ~/security-suite/logs
-chmod 700 ~/security-suite/logs/*
+chmod 700 ~/aegis-security-suite/logs
+chmod 700 ~/aegis-security-suite/logs/*
 
 # Test log creation
-echo "Test log entry" > ~/security-suite/logs/manual/test.log
+echo "Test log entry" > ~/aegis-security-suite/logs/manual/test.log
 ```
 
 #### 6. Configuration File Errors
@@ -509,14 +509,14 @@ echo "Test log entry" > ~/security-suite/logs/manual/test.log
 **Solutions**:
 ```bash
 # Check configuration syntax
-bash -n ~/security-suite/configs/security-config.conf
+bash -n ~/aegis-security-suite/configs/security-config.conf
 
 # Validate configuration
-source ~/security-suite/configs/security-config.conf
+source ~/aegis-security-suite/configs/security-config.conf
 echo "Configuration loaded successfully"
 
 # Reset to default configuration
-cp configs/security-config.conf ~/security-suite/configs/security-config.conf
+cp configs/security-config.conf ~/aegis-security-suite/configs/security-config.conf
 ```
 
 ### Getting Help
@@ -525,34 +525,34 @@ cp configs/security-config.conf ~/security-suite/configs/security-config.conf
 
 ```bash
 # Check installation log
-cat ~/security-suite/logs/manual/installation_*.log
+cat ~/aegis-security-suite/logs/manual/installation_*.log
 
 # Check error logs
-cat ~/security-suite/logs/error/security_errors_*.log
+cat ~/aegis-security-suite/logs/error/security_errors_*.log
 
 # Check audit logs
-cat ~/security-suite/logs/audit/security_audit_*.log
+cat ~/aegis-security-suite/logs/audit/security_audit_*.log
 ```
 
 #### Run Test Script
 
 ```bash
 # Run comprehensive tests
-$SECURITY_SUITE_HOME/scripts/test-security-components.sh
+$AEGIS_HOME/scripts/test-security-components.sh
 
 # Run specific test
-$SECURITY_SUITE_HOME/scripts/test-security-components.sh --test clamav
-$SECURITY_SUITE_HOME/scripts/test-security-components.sh --test rkhunter
+$AEGIS_HOME/scripts/test-security-components.sh --test clamav
+$AEGIS_HOME/scripts/test-security-components.sh --test rkhunter
 ```
 
 #### Verify Installation
 
 ```bash
 # Check installation status
-$SECURITY_SUITE_HOME/scripts/test-security-components.sh --verify
+$AEGIS_HOME/scripts/test-security-components.sh --verify
 
 # Check all components
-$SECURITY_SUITE_HOME/scripts/test-security-components.sh --all
+$AEGIS_HOME/scripts/test-security-components.sh --all
 ```
 
 ### Performance Issues
@@ -564,10 +564,10 @@ $SECURITY_SUITE_HOME/scripts/test-security-components.sh --all
 **Solutions**:
 ```bash
 # Configure scan limits
-echo "CLAMAV_MEMORY_LIMIT=500" >> ~/security-suite/configs/security-config.conf
+echo "CLAMAV_MEMORY_LIMIT=500" >> ~/aegis-security-suite/configs/security-config.conf
 
 # Use quick scan mode
-sed -i 's/UPDATE_BEFORE_SCAN=true/UPDATE_BEFORE_SCAN=false/' ~/security-suite/configs/security-config.conf
+sed -i 's/UPDATE_BEFORE_SCAN=true/UPDATE_BEFORE_SCAN=false/' ~/aegis-security-suite/configs/security-config.conf
 
 # Monitor memory usage
 free -h
@@ -581,13 +581,13 @@ ps aux --sort=-%mem | head -10
 **Solutions**:
 ```bash
 # Reduce scan directories
-sed -i 's|DAILY_SCAN_DIRS=.*|DAILY_SCAN_DIRS=("$HOME/Documents")|' ~/security-suite/configs/security-config.conf
+sed -i 's|DAILY_SCAN_DIRS=.*|DAILY_SCAN_DIRS=("$HOME/Documents")|' ~/aegis-security-suite/configs/security-config.conf
 
 # Exclude large directories
-echo "SCAN_EXCLUDES=("$HOME/Videos" "$HOME/Music")" >> ~/security-suite/configs/security-config.conf
+echo "SCAN_EXCLUDES=("$HOME/Videos" "$HOME/Music")" >> ~/aegis-security-suite/configs/security-config.conf
 
 # Use quick scan mode
-sed -i 's/REAL_TIME_FEEDBACK=false/REAL_TIME_FEEDBACK=true/' ~/security-suite/configs/security-config.conf
+sed -i 's/REAL_TIME_FEEDBACK=false/REAL_TIME_FEEDBACK=true/' ~/aegis-security-suite/configs/security-config.conf
 ```
 
 #### Disk Space Issues
@@ -597,13 +597,13 @@ sed -i 's/REAL_TIME_FEEDBACK=false/REAL_TIME_FEEDBACK=true/' ~/security-suite/co
 **Solutions**:
 ```bash
 # Check log sizes
-du -sh ~/security-suite/logs/*
+du -sh ~/aegis-security-suite/logs/*
 
 # Clean old logs
-find ~/security-suite/logs -name "*.log" -mtime +30 -delete
+find ~/aegis-security-suite/logs -name "*.log" -mtime +30 -delete
 
 # Configure log rotation
-echo "LOG_RETENTION_DAYS=30" >> ~/security-suite/configs/security-config.conf
+echo "LOG_RETENTION_DAYS=30" >> ~/aegis-security-suite/configs/security-config.conf
 ```
 
 ## Migration and Upgrades
@@ -612,7 +612,7 @@ echo "LOG_RETENTION_DAYS=30" >> ~/security-suite/configs/security-config.conf
 
 ```bash
 # Backup current configuration
-cp ~/security-suite/configs/security-config.conf ~/security-suite/configs/security-config.conf.backup
+cp ~/aegis-security-suite/configs/security-config.conf ~/aegis-security-suite/configs/security-config.conf.backup
 
 # Stop running services
 systemctl --user stop security-daily-scan.timer
@@ -635,23 +635,23 @@ systemctl --user start security-monthly-scan.timer
 
 ```bash
 # Export current configuration
-$SECURITY_SUITE_HOME/scripts/export-config.sh > current-config.txt
+$AEGIS_HOME/scripts/export-config.sh > current-config.txt
 
 # Install new version
 ./setup-aegis.sh --fresh-install
 
 # Import configuration
-$SECURITY_SUITE_HOME/scripts/import-config.sh current-config.txt
+$AEGIS_HOME/scripts/import-config.sh current-config.txt
 ```
 
 ### Backup and Restore
 
 ```bash
 # Create backup
-$SECURITY_SUITE_HOME/scripts/backup-config.sh
+$AEGIS_HOME/scripts/backup-config.sh
 
 # Restore from backup
-$SECURITY_SUITE_HOME/scripts/restore-config.sh backup_20231029_120000.tar.gz
+$AEGIS_HOME/scripts/restore-config.sh backup_20231029_120000.tar.gz
 ```
 
 ## Uninstallation
@@ -677,7 +677,7 @@ rm -f ~/.config/systemd/user/security-*.timer
 systemctl --user daemon-reload
 
 # Remove security suite directory
-rm -rf ~/security-suite
+rm -rf ~/aegis-security-suite
 
 # Remove security tools (optional)
 sudo pacman -Rns clamav rkhunter chkrootkit lynis
@@ -693,10 +693,10 @@ sudo loginctl disable-linger $USER
 sudo pacman -Rns chkrootkit lynis
 
 # Remove configuration only
-rm -rf ~/security-suite/configs
+rm -rf ~/aegis-security-suite/configs
 
 # Remove logs only
-rm -rf ~/security-suite/logs
+rm -rf ~/aegis-security-suite/logs
 ```
 
 ## Support and Community
@@ -726,12 +726,12 @@ When reporting issues, please include:
 
 2. **Configuration**
    ```bash
-   cat ~/security-suite/configs/security-config.conf
+   cat ~/aegis-security-suite/configs/security-config.conf
    ```
 
 3. **Error Logs**
    ```bash
-   cat ~/security-suite/logs/error/security_errors_*.log
+   cat ~/aegis-security-suite/logs/error/security_errors_*.log
    ```
 
 4. **Steps to Reproduce**

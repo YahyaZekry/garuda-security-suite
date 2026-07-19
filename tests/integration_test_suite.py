@@ -17,9 +17,9 @@ from pathlib import Path
 class IntegrationTester:
     def __init__(self):
         self.dashboard_url = "http://localhost:8080"
-        # Use current directory if SECURITY_SUITE_HOME is not set or points to non-existent location
+        # Use current directory if AEGIS_HOME is not set or points to non-existent location
         default_home = '/opt/aegis-security-suite'
-        env_home = os.environ.get('SECURITY_SUITE_HOME', default_home)
+        env_home = os.environ.get('AEGIS_HOME', os.environ.get('SECURITY_SUITE_HOME', default_home))
         self.security_suite_home = env_home if os.path.exists(env_home) else os.getcwd()
         self.test_results = {
             'behavioral_analysis': {},

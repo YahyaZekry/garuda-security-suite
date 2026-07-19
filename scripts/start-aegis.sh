@@ -13,11 +13,11 @@ if [ -f "$SCRIPT_DIR/common-functions.sh" ]; then
     setup_user_environment
 else
     # Fallback if common functions not available
-    SECURITY_SUITE_HOME="$(dirname "$SCRIPT_DIR")"
+    AEGIS_HOME="$(dirname "$SCRIPT_DIR")"
 fi
 
-CONFIG_FILE="$SECURITY_SUITE_HOME/configs/security-config.conf"
-PID_DIR="$SECURITY_SUITE_HOME/.pids"
+CONFIG_FILE="$AEGIS_HOME/configs/security-config.conf"
+PID_DIR="$AEGIS_HOME/.pids"
 
 # Colors for output
 declare -A COLORS=(
@@ -93,9 +93,9 @@ check_prerequisites() {
         fi
     done
     
-    # Check security suite installation
-    if [ ! -d "$SECURITY_SUITE_HOME" ]; then
-        log_error "Security suite not found at: $SECURITY_SUITE_HOME"
+    # Check Aegis Security Suite installation
+    if [ ! -d "$AEGIS_HOME" ]; then
+        log_error "Aegis Security Suite not found at: $AEGIS_HOME"
         log_info "Please run the installation script first"
         exit 1
     fi
@@ -306,28 +306,28 @@ start_web_dashboard() {
     fi
     
     # Check if dashboard directory exists
-    if [ ! -d "$SECURITY_SUITE_HOME/web-dashboard" ]; then
-        log_error "Web dashboard directory not found: $SECURITY_SUITE_HOME/web-dashboard"
+    if [ ! -d "$AEGIS_HOME/web-dashboard" ]; then
+        log_error "Web dashboard directory not found: $AEGIS_HOME/web-dashboard"
         return 1
     fi
     
     # Check if start script exists
-    if [ ! -f "$SECURITY_SUITE_HOME/web-dashboard/start-dashboard.sh" ]; then
-        log_error "Dashboard start script not found: $SECURITY_SUITE_HOME/web-dashboard/start-dashboard.sh"
+    if [ ! -f "$AEGIS_HOME/web-dashboard/start-dashboard.sh" ]; then
+        log_error "Dashboard start script not found: $AEGIS_HOME/web-dashboard/start-dashboard.sh"
         return 1
     fi
     
     # Make script executable
-    chmod +x "$SECURITY_SUITE_HOME/web-dashboard/start-dashboard.sh"
+    chmod +x "$AEGIS_HOME/web-dashboard/start-dashboard.sh"
     
     # Start dashboard using the start script
-    cd "$SECURITY_SUITE_HOME/web-dashboard" || {
+    cd "$AEGIS_HOME/web-dashboard" || {
         log_error "Failed to change to dashboard directory"
         return 1
     }
     
     # Set environment variable for security suite home
-    export SECURITY_SUITE_HOME="$SECURITY_SUITE_HOME"
+    export AEGIS_HOME="$AEGIS_HOME"
     
     ./start-dashboard.sh start
 }
@@ -337,13 +337,13 @@ stop_web_dashboard() {
     log_info "Stopping web dashboard"
     
     # Check if dashboard directory exists
-    if [ ! -d "$SECURITY_SUITE_HOME/web-dashboard" ]; then
-        log_warning "Web dashboard directory not found: $SECURITY_SUITE_HOME/web-dashboard"
+    if [ ! -d "$AEGIS_HOME/web-dashboard" ]; then
+        log_warning "Web dashboard directory not found: $AEGIS_HOME/web-dashboard"
         return 0
     fi
     
     # Check if start script exists
-    if [ ! -f "$SECURITY_SUITE_HOME/web-dashboard/start-dashboard.sh" ]; then
+    if [ ! -f "$AEGIS_HOME/web-dashboard/start-dashboard.sh" ]; then
         log_warning "Dashboard start script not found, trying manual stop"
         # Try to stop using PID file directly
         local pid_file="/tmp/aegis-dashboard.pid"
@@ -362,7 +362,7 @@ stop_web_dashboard() {
     fi
     
     # Navigate to dashboard directory
-    cd "$SECURITY_SUITE_HOME/web-dashboard" || {
+    cd "$AEGIS_HOME/web-dashboard" || {
         log_error "Failed to change to dashboard directory"
         return 1
     }
@@ -382,13 +382,13 @@ start_behavioral_monitor() {
     fi
     
     # Check if behavioral monitor script exists
-    if [ ! -f "$SECURITY_SUITE_HOME/scripts/behavioral-monitor-optimized.sh" ]; then
-        log_error "Behavioral monitor script not found: $SECURITY_SUITE_HOME/scripts/behavioral-monitor-optimized.sh"
+    if [ ! -f "$AEGIS_HOME/scripts/behavioral-monitor-optimized.sh" ]; then
+        log_error "Behavioral monitor script not found: $AEGIS_HOME/scripts/behavioral-monitor-optimized.sh"
         return 1
     fi
     
     # Make script executable
-    chmod +x "$SECURITY_SUITE_HOME/scripts/behavioral-monitor-optimized.sh"
+    chmod +x "$AEGIS_HOME/scripts/behavioral-monitor-optimized.sh"
     
     # Check if already running
     if pgrep -f "behavioral-monitor-optimized.sh" > /dev/null; then
@@ -397,16 +397,16 @@ start_behavioral_monitor() {
     fi
     
     # Start behavioral monitor in background
-    cd "$SECURITY_SUITE_HOME/scripts" || {
+    cd "$AEGIS_HOME/scripts" || {
         log_error "Failed to change to scripts directory"
         return 1
     }
     
     # Set environment variables
-    export SECURITY_SUITE_HOME="$SECURITY_SUITE_HOME"
+    export AEGIS_HOME="$AEGIS_HOME"
     
     # Start the monitor with default duration (run continuously)
-    nohup ./behavioral-monitor-optimized.sh > "$SECURITY_SUITE_HOME/logs/behavioral-monitor.log" 2>&1 &
+    nohup ./behavioral-monitor-optimized.sh > "$AEGIS_HOME/logs/behavioral-monitor.log" 2>&1 &
     
     # Save PID
     local pid=$!
@@ -462,13 +462,13 @@ start_scan_service_manually() {
     esac
     
     # Check if script exists
-    if [ ! -f "$SECURITY_SUITE_HOME/scripts/$script_name" ]; then
-        log_error "Scan script not found: $SECURITY_SUITE_HOME/scripts/$script_name"
+    if [ ! -f "$AEGIS_HOME/scripts/$script_name" ]; then
+        log_error "Scan script not found: $AEGIS_HOME/scripts/$script_name"
         return 1
     fi
     
     # Make script executable
-    chmod +x "$SECURITY_SUITE_HOME/scripts/$script_name"
+    chmod +x "$AEGIS_HOME/scripts/$script_name"
     
     # Check if already running
     if pgrep -f "$script_name" > /dev/null; then
@@ -477,16 +477,16 @@ start_scan_service_manually() {
     fi
     
     # Start scan in background
-    cd "$SECURITY_SUITE_HOME/scripts" || {
+    cd "$AEGIS_HOME/scripts" || {
         log_error "Failed to change to scripts directory"
         return 1
     }
     
     # Set environment variables
-    export SECURITY_SUITE_HOME="$SECURITY_SUITE_HOME"
+    export AEGIS_HOME="$AEGIS_HOME"
     
     # Start the scan
-    nohup ./"$script_name" > "$SECURITY_SUITE_HOME/logs/${service_name}.log" 2>&1 &
+    nohup ./"$script_name" > "$AEGIS_HOME/logs/${service_name}.log" 2>&1 &
     
     # Save PID
     local pid=$!
@@ -606,7 +606,7 @@ show_status() {
     if is_service_active "web-dashboard"; then
         log_success "Web Dashboard: RUNNING"
         log_info "  URL: http://localhost:8080"
-        log_info "  Logs: $SECURITY_SUITE_HOME/logs/web-dashboard.log"
+        log_info "  Logs: $AEGIS_HOME/logs/web-dashboard.log"
     else
         log_warning "Web Dashboard: STOPPED"
     fi
@@ -617,7 +617,7 @@ run_test() {
     log_header "Running Comprehensive Test"
     
     # Check if test script exists
-    local test_script="$SECURITY_SUITE_HOME/tests/test-suite-comprehensive.sh"
+    local test_script="$AEGIS_HOME/tests/test-suite-comprehensive.sh"
     if [ -f "$test_script" ]; then
         log_info "Running comprehensive test suite..."
         bash "$test_script"
@@ -637,7 +637,7 @@ run_test() {
         # Check scripts
         local required_scripts=("security-daily-scan.sh" "behavioral-analysis.sh" "incident-response.sh")
         for script in "${required_scripts[@]}"; do
-            if [ ! -f "$SECURITY_SUITE_HOME/scripts/$script" ]; then
+            if [ ! -f "$AEGIS_HOME/scripts/$script" ]; then
                 log_error "Required script missing: $script"
                 validation_passed=false
             fi
@@ -646,7 +646,7 @@ run_test() {
         # Check databases
         local db_dirs=("behavioral_analysis" "incident_response" "threat_intelligence")
         for db_dir in "${db_dirs[@]}"; do
-            if [ ! -d "$SECURITY_SUITE_HOME/configs/$db_dir" ]; then
+            if [ ! -d "$AEGIS_HOME/configs/$db_dir" ]; then
                 log_error "Database directory missing: $db_dir"
                 validation_passed=false
             fi
@@ -693,7 +693,7 @@ Examples:
 
 Configuration:
   Configuration file: $CONFIG_FILE
-  Security suite home: $SECURITY_SUITE_HOME
+  Aegis home: $AEGIS_HOME
 
 For more information, see the documentation at:
   https://github.com/YahyaZekry/aegis-security-suite/docs/

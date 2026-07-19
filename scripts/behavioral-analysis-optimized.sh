@@ -6,15 +6,15 @@ source "$(dirname "$0")/common-functions.sh"
 
 # Get security suite home directory
 SCRIPT_DIR="$(dirname "$0")"
-SECURITY_SUITE_HOME="$(dirname "$SCRIPT_DIR")"
+AEGIS_HOME="$(dirname "$SCRIPT_DIR")"
 
 # Load configuration
-if [ -f "$SECURITY_SUITE_HOME/configs/security-config.conf" ]; then
-    source "$SECURITY_SUITE_HOME/configs/security-config.conf"
+if [ -f "$AEGIS_HOME/configs/security-config.conf" ]; then
+    source "$AEGIS_HOME/configs/security-config.conf"
 fi
 
 # Optimized behavioral analysis configuration
-BEHAVIORAL_DATABASE="${BEHAVIORAL_DATABASE:-$SECURITY_SUITE_HOME/configs/behavioral_analysis/behavioral_data.db}"
+BEHAVIORAL_DATABASE="${BEHAVIORAL_DATABASE:-$AEGIS_HOME/configs/behavioral_analysis/behavioral_data.db}"
 BEHAVIORAL_LEARNING_PERIOD="${BEHAVIORAL_LEARNING_PERIOD:-7}"
 BEHAVIORAL_MONITORING_INTERVAL="${BEHAVIORAL_MONITORING_INTERVAL:-30}"
 BEHAVIORAL_THREAT_SCORE_THRESHOLD="${BEHAVIORAL_THREAT_SCORE_THRESHOLD:-70}"
@@ -503,7 +503,7 @@ generate_behavioral_report() {
     local format="$1"
     local period="$2"
     
-    local report_file="$SECURITY_SUITE_HOME/configs/behavioral_analysis/behavioral_report_optimized_$(date +%Y%m%d_%H%M%S).txt"
+    local report_file="$AEGIS_HOME/configs/behavioral_analysis/behavioral_report_optimized_$(date +%Y%m%d_%H%M%S).txt"
     
     {
         echo "Optimized Behavioral Analysis Report"

@@ -137,7 +137,7 @@ test_script_availability() {
 test_database_operations() {
     log_test "Testing Database Initialization and Operations"
     
-    local db_dir="$SECURITY_SUITE_HOME/configs/behavioral_analysis"
+    local db_dir="$AEGIS_HOME/configs/behavioral_analysis"
     local db_file="$db_dir/behavioral_data.db"
     
     # Check database directory
@@ -428,7 +428,7 @@ test_data_integrity() {
     log_test "Testing Data Integrity and Validation"
     
     if [ "${BEHAVIORAL_ANALYSIS_ENABLED:-false}" = "true" ]; then
-        local db_dir="$SECURITY_SUITE_HOME/configs/behavioral_analysis"
+        local db_dir="$AEGIS_HOME/configs/behavioral_analysis"
         local db_file="$db_dir/behavioral_data.db"
         
         if [ -f "$db_file" ]; then

@@ -226,9 +226,9 @@ test_database_performance() {
     log_test "Testing Database Performance"
     
     local databases=(
-        "$SECURITY_SUITE_HOME/configs/behavioral_analysis/behavioral_data.db"
-        "$SECURITY_SUITE_HOME/configs/threat_intelligence/ioc_database.db"
-        "$SECURITY_SUITE_HOME/configs/incident_response/incidents.db"
+        "$AEGIS_HOME/configs/behavioral_analysis/behavioral_data.db"
+        "$AEGIS_HOME/configs/threat_intelligence/ioc_database.db"
+        "$AEGIS_HOME/configs/incident_response/incidents.db"
     )
     
     for db in "${databases[@]}"; do
@@ -374,9 +374,9 @@ test_disk_usage_performance() {
     
     # Check log directory sizes
     local log_dirs=(
-        "$SECURITY_SUITE_HOME/logs/error"
-        "$SECURITY_SUITE_HOME/logs/manual"
-        "$SECURITY_SUITE_HOME/logs/behavioral"
+        "$AEGIS_HOME/logs/error"
+        "$AEGIS_HOME/logs/manual"
+        "$AEGIS_HOME/logs/behavioral"
     )
     
     local total_log_size=0
@@ -398,9 +398,9 @@ test_disk_usage_performance() {
     
     # Check database directory sizes
     local db_dirs=(
-        "$SECURITY_SUITE_HOME/configs/behavioral_analysis"
-        "$SECURITY_SUITE_HOME/configs/threat_intelligence"
-        "$SECURITY_SUITE_HOME/configs/incident_response"
+        "$AEGIS_HOME/configs/behavioral_analysis"
+        "$AEGIS_HOME/configs/threat_intelligence"
+        "$AEGIS_HOME/configs/incident_response"
     )
     
     local total_db_size=0

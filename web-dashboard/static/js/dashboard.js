@@ -1048,6 +1048,11 @@ function getCSRFToken() {
     return token ? token.getAttribute('content') : '';
 }
 
+function isSingleUserMode() {
+    const meta = document.querySelector('meta[name="deployment-mode"]');
+    return !meta || meta.getAttribute('content') !== 'team';
+}
+
 function showLoadingState(elementId) {
     const element = document.getElementById(elementId);
     if (element) {

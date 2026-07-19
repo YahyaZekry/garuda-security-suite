@@ -280,7 +280,7 @@ test_session_management_load() {
 test_database_concurrent_access() {
     log_test "Testing Database Concurrent Access"
     
-    local behavioral_db="$SECURITY_SUITE_HOME/configs/behavioral_analysis/behavioral_data.db"
+    local behavioral_db="$AEGIS_HOME/configs/behavioral_analysis/behavioral_data.db"
     
     if [ -f "$behavioral_db" ] && command -v sqlite3 &> /dev/null; then
         # Create test table for concurrent access

@@ -378,7 +378,8 @@ def migrate_incidents_db(db_path):
 def main():
     """Main migration function"""
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    security_suite_home = os.environ.get('SECURITY_SUITE_HOME', os.path.dirname(script_dir))
+    security_suite_home = os.environ.get(
+        'AEGIS_HOME', os.environ.get('SECURITY_SUITE_HOME', os.path.dirname(script_dir)))
     
     print("=" * 50)
     print("Aegis Security Suite Smart Database Migration")

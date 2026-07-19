@@ -88,7 +88,7 @@ test_behavioral_anomaly_workflow() {
             sleep 5
             
             # Check if anomalies were detected
-            local behavioral_db="$SECURITY_SUITE_HOME/configs/behavioral_analysis/behavioral_data.db"
+            local behavioral_db="$AEGIS_HOME/configs/behavioral_analysis/behavioral_data.db"
             if [ -f "$behavioral_db" ] && command -v sqlite3 &> /dev/null; then
                 local anomaly_count=$(sqlite3 "$behavioral_db" "SELECT COUNT(*) FROM anomalies WHERE detected_at > datetime('now', '-10 minutes');" 2>/dev/null || echo "0")
                 
@@ -133,7 +133,7 @@ test_threat_intelligence_alerting() {
         log_info "Creating test threat scenario..."
         
         # Add test IOC to database
-        local threat_db="$SECURITY_SUITE_HOME/configs/threat_intelligence/ioc_database.db"
+        local threat_db="$AEGIS_HOME/configs/threat_intelligence/ioc_database.db"
         if [ -f "$threat_db" ] && command -v sqlite3 &> /dev/null; then
             local test_ioc="test.malicious.domain.com"
             local test_ip="192.168.100.999"
@@ -216,7 +216,7 @@ test_incident_creation_workflow() {
                 log_pass "Incident created from threat detection: $incident_id"
                 
                 # Verify incident in database
-                local incident_db="$SECURITY_SUITE_HOME/configs/incident_response/incidents.db"
+                local incident_db="$AEGIS_HOME/configs/incident_response/incidents.db"
                 if [ -f "$incident_db" ] && command -v sqlite3 &> /dev/null; then
                     local incident_count=$(sqlite3 "$incident_db" "SELECT COUNT(*) FROM incidents WHERE id = '$incident_id';" 2>/dev/null || echo "0")
                     
@@ -273,7 +273,7 @@ test_alert_notification_workflow() {
                     log_pass "$method notification sent successfully"
                     
                     # Check notification log
-                    local notification_log="$SECURITY_SUITE_HOME/logs/notifications.log"
+                    local notification_log="$AEGIS_HOME/logs/notifications.log"
                     if [ -f "$notification_log" ]; then
                         if tail -n 10 "$notification_log" | grep -q "$test_alert"; then
                             log_pass "$method notification logged successfully"
@@ -330,7 +330,7 @@ test_realtime_threat_dashboard() {
         log_info "Testing real-time threat data integration..."
         
         # Create test threat
-        local behavioral_db="$SECURITY_SUITE_HOME/configs/behavioral_analysis/behavioral_data.db"
+        local behavioral_db="$AEGIS_HOME/configs/behavioral_analysis/behavioral_data.db"
         if [ -f "$behavioral_db" ] && command -v sqlite3 &> /dev/null; then
             # Insert test anomaly
             sqlite3 "$behavioral_db" << EOF 2>/dev/null
@@ -425,7 +425,7 @@ test_threat_escalation_workflow() {
     if [ ${#incident_ids[@]} -gt 0 ]; then
         log_info "Verifying escalation workflow for ${#incident_ids[@]} incidents..."
         
-        local incident_db="$SECURITY_SUITE_HOME/configs/incident_response/incidents.db"
+        local incident_db="$AEGIS_HOME/configs/incident_response/incidents.db"
         if [ -f "$incident_db" ] && command -v sqlite3 &> /dev/null; then
             local escalated_count=0
             
@@ -455,8 +455,8 @@ test_ti_behavioral_integration() {
     # Create test scenario where threat intelligence informs behavioral analysis
     log_info "Creating TI-behavioral integration test scenario..."
     
-    local threat_db="$SECURITY_SUITE_HOME/configs/threat_intelligence/ioc_database.db"
-    local behavioral_db="$SECURITY_SUITE_HOME/configs/behavioral_analysis/behavioral_data.db"
+    local threat_db="$AEGIS_HOME/configs/threat_intelligence/ioc_database.db"
+    local behavioral_db="$AEGIS_HOME/configs/behavioral_analysis/behavioral_data.db"
     
     if [ -f "$threat_db" ] && [ -f "$behavioral_db" ] && command -v sqlite3 &> /dev/null; then
         # Add test IOCs to threat intelligence
@@ -521,7 +521,7 @@ test_multisource_threat_correlation() {
         case "$source" in
             "behavioral")
                 # Create behavioral anomaly
-                local behavioral_db="$SECURITY_SUITE_HOME/configs/behavioral_analysis/behavioral_data.db"
+                local behavioral_db="$AEGIS_HOME/configs/behavioral_analysis/behavioral_data.db"
                 if [ -f "$behavioral_db" ] && command -v sqlite3 &> /dev/null; then
                     sqlite3 "$behavioral_db" << EOF 2>/dev/null
 INSERT INTO anomalies (id, type, severity, source, detected_at) 
@@ -532,7 +532,7 @@ EOF
                 ;;
             "threat_intel")
                 # Create threat intelligence indicator
-                local threat_db="$SECURITY_SUITE_HOME/configs/threat_intelligence/ioc_database.db"
+                local threat_db="$AEGIS_HOME/configs/threat_intelligence/ioc_database.db"
                 if [ -f "$threat_db" ] && command -v sqlite3 &> /dev/null; then
                     sqlite3 "$threat_db" << EOF 2>/dev/null
 INSERT OR REPLACE INTO indicators (value, type, source, confidence, first_seen) 
@@ -543,7 +543,7 @@ EOF
                 ;;
             "network")
                 # Create network-based threat
-                local incident_db="$SECURITY_SUITE_HOME/configs/incident_response/incidents.db"
+                local incident_db="$AEGIS_HOME/configs/incident_response/incidents.db"
                 if [ -f "$incident_db" ] && command -v sqlite3 &> /dev/null; then
                     sqlite3 "$incident_db" << EOF 2>/dev/null
 INSERT INTO incidents (id, title, description, severity, source, timestamp) 
@@ -577,7 +577,7 @@ EOF
             sleep 3
             
             # Check for correlated incidents
-            local incident_db="$SECURITY_SUITE_HOME/configs/incident_response/incidents.db"
+            local incident_db="$AEGIS_HOME/configs/incident_response/incidents.db"
             if [ -f "$incident_db" ] && command -v sqlite3 &> /dev/null; then
                 local correlated_incidents=$(sqlite3 "$incident_db" "SELECT COUNT(*) FROM incidents WHERE title LIKE '%CORR_TEST%' AND status = 'correlated';" 2>/dev/null || echo "0")
                 
@@ -662,7 +662,7 @@ test_threat_detection_performance() {
     # Generate multiple threat scenarios
     for i in {1..10}; do
         # Create behavioral anomaly
-        local behavioral_db="$SECURITY_SUITE_HOME/configs/behavioral_analysis/behavioral_data.db"
+        local behavioral_db="$AEGIS_HOME/configs/behavioral_analysis/behavioral_data.db"
         if [ -f "$behavioral_db" ] && command -v sqlite3 &> /dev/null; then
             sqlite3 "$behavioral_db" << EOF 2>/dev/null
 INSERT INTO anomalies (id, type, severity, detected_at) 
@@ -672,7 +672,7 @@ EOF
         fi
         
         # Create network threat
-        local threat_db="$SECURITY_SUITE_HOME/configs/threat_intelligence/ioc_database.db"
+        local threat_db="$AEGIS_HOME/configs/threat_intelligence/ioc_database.db"
         if [ -f "$threat_db" ] && command -v sqlite3 &> /dev/null; then
             sqlite3 "$threat_db" << EOF 2>/dev/null
 INSERT OR REPLACE INTO indicators (value, type, source, confidence, first_seen) 
@@ -698,7 +698,7 @@ EOF
     
     # Check detection accuracy
     local detected_count=0
-    local behavioral_db="$SECURITY_SUITE_HOME/configs/behavioral_analysis/behavioral_data.db"
+    local behavioral_db="$AEGIS_HOME/configs/behavioral_analysis/behavioral_data.db"
     if [ -f "$behavioral_db" ] && command -v sqlite3 &> /dev/null; then
         detected_count=$(sqlite3 "$behavioral_db" "SELECT COUNT(*) FROM anomalies WHERE type = 'performance_test';" 2>/dev/null || echo "0")
     fi
@@ -715,9 +715,9 @@ cleanup() {
     log_info "Cleaning up threat detection test environment..."
     
     # Clean up test data
-    local behavioral_db="$SECURITY_SUITE_HOME/configs/behavioral_analysis/behavioral_data.db"
-    local threat_db="$SECURITY_SUITE_HOME/configs/threat_intelligence/ioc_database.db"
-    local incident_db="$SECURITY_SUITE_HOME/configs/incident_response/incidents.db"
+    local behavioral_db="$AEGIS_HOME/configs/behavioral_analysis/behavioral_data.db"
+    local threat_db="$AEGIS_HOME/configs/threat_intelligence/ioc_database.db"
+    local incident_db="$AEGIS_HOME/configs/incident_response/incidents.db"
     
     if command -v sqlite3 &> /dev/null; then
         # Clean test anomalies

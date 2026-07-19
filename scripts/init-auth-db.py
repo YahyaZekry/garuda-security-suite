@@ -9,8 +9,10 @@ import sys
 # Add the web-dashboard directory to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'web-dashboard'))
 
-# Set environment variable
-os.environ['SECURITY_SUITE_HOME'] = os.environ.get('SECURITY_SUITE_HOME', os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Set environment variable (honor a pre-rename SECURITY_SUITE_HOME if set)
+os.environ['AEGIS_HOME'] = os.environ.get(
+    'AEGIS_HOME',
+    os.environ.get('SECURITY_SUITE_HOME', os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 # Import and initialize
 from auth import ensure_auth_db

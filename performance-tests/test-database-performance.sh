@@ -61,9 +61,9 @@ test_connection_performance() {
     log_test "Testing Database Connection Performance"
     
     local databases=(
-        "$SECURITY_SUITE_HOME/configs/behavioral_analysis/behavioral_data.db"
-        "$SECURITY_SUITE_HOME/configs/threat_intelligence/ioc_database.db"
-        "$SECURITY_SUITE_HOME/configs/incident_response/incidents.db"
+        "$AEGIS_HOME/configs/behavioral_analysis/behavioral_data.db"
+        "$AEGIS_HOME/configs/threat_intelligence/ioc_database.db"
+        "$AEGIS_HOME/configs/incident_response/incidents.db"
     )
     
     for db in "${databases[@]}"; do
@@ -98,7 +98,7 @@ test_connection_performance() {
 test_query_performance() {
     log_test "Testing Query Performance"
     
-    local behavioral_db="$SECURITY_SUITE_HOME/configs/behavioral_analysis/behavioral_data.db"
+    local behavioral_db="$AEGIS_HOME/configs/behavioral_analysis/behavioral_data.db"
     
     if [ -f "$behavioral_db" ] && command -v sqlite3 &> /dev/null; then
         # Test simple queries
@@ -333,9 +333,9 @@ test_database_optimization() {
     log_test "Testing Database Size and Optimization"
     
     local databases=(
-        "$SECURITY_SUITE_HOME/configs/behavioral_analysis/behavioral_data.db"
-        "$SECURITY_SUITE_HOME/configs/threat_intelligence/ioc_database.db"
-        "$SECURITY_SUITE_HOME/configs/incident_response/incidents.db"
+        "$AEGIS_HOME/configs/behavioral_analysis/behavioral_data.db"
+        "$AEGIS_HOME/configs/threat_intelligence/ioc_database.db"
+        "$AEGIS_HOME/configs/incident_response/incidents.db"
     )
     
     for db in "${databases[@]}"; do
@@ -435,7 +435,7 @@ test_transaction_performance() {
 test_backup_performance() {
     log_test "Testing Database Backup Performance"
     
-    local behavioral_db="$SECURITY_SUITE_HOME/configs/behavioral_analysis/behavioral_data.db"
+    local behavioral_db="$AEGIS_HOME/configs/behavioral_analysis/behavioral_data.db"
     
     if [ -f "$behavioral_db" ] && command -v sqlite3 &> /dev/null; then
         local backup_file="/tmp/backup_test_$$.db"

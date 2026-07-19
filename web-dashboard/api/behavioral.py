@@ -21,7 +21,7 @@ from auth import require_auth, require_role
 behavioral_bp = Blueprint('behavioral', __name__, url_prefix='/api/behavioral')
 
 # Database paths
-BEHAVIORAL_DB_PATH = os.path.join(os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite'),
+BEHAVIORAL_DB_PATH = os.path.join(os.environ.get('AEGIS_HOME', '/opt/aegis-security-suite'),
                                   'configs', 'behavioral_analysis', 'behavioral_data.db')
 
 def get_behavioral_data(time_range='24h'):
@@ -362,7 +362,7 @@ def create_baseline():
             }), 400
         
         # Run behavioral analysis script to create baseline
-        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite')
+        security_home = os.environ.get('AEGIS_HOME', '/opt/aegis-security-suite')
         behavioral_script = os.path.join(security_home, 'scripts', 'behavioral-analysis.sh')
         
         if not os.path.exists(behavioral_script):
@@ -432,7 +432,7 @@ def create_baseline():
 def start_monitoring():
     """Start behavioral monitoring"""
     try:
-        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite')
+        security_home = os.environ.get('AEGIS_HOME', '/opt/aegis-security-suite')
         monitor_script = os.path.join(security_home, 'scripts', 'behavioral-monitor.sh')
         
         if not os.path.exists(monitor_script):
@@ -490,7 +490,7 @@ def start_monitoring():
 def stop_monitoring():
     """Stop behavioral monitoring"""
     try:
-        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite')
+        security_home = os.environ.get('AEGIS_HOME', '/opt/aegis-security-suite')
         monitor_script = os.path.join(security_home, 'scripts', 'behavioral-monitor.sh')
         
         if not os.path.exists(monitor_script):
@@ -634,7 +634,7 @@ def create_baseline_post():
         data = request.get_json() or {}
         days = data.get('days', 7)
         scope = data.get('scope', 'full')
-        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite')
+        security_home = os.environ.get('AEGIS_HOME', '/opt/aegis-security-suite')
         script = os.path.join(security_home, 'scripts', 'behavioral-analysis.sh')
         if os.path.exists(script):
             subprocess.run(['sudo', script, '--create-baseline', '--duration', str(int(days) * 24)], capture_output=True, text=True, timeout=300)
@@ -652,7 +652,7 @@ def create_baseline_post():
 @require_role('analyst')
 def update_baseline():
     try:
-        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite')
+        security_home = os.environ.get('AEGIS_HOME', '/opt/aegis-security-suite')
         script = os.path.join(security_home, 'scripts', 'behavioral-analysis.sh')
         if os.path.exists(script):
             subprocess.run(['sudo', script, '--update-baseline'], capture_output=True, text=True, timeout=300)
@@ -669,7 +669,7 @@ def update_baseline():
 @require_role('analyst')
 def analyze():
     try:
-        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite')
+        security_home = os.environ.get('AEGIS_HOME', '/opt/aegis-security-suite')
         script = os.path.join(security_home, 'scripts', 'behavioral-analysis.sh')
         if os.path.exists(script):
             result = subprocess.run(['sudo', script, '--analyze'], capture_output=True, text=True, timeout=300)
@@ -717,7 +717,7 @@ def export_analysis():
 def save_behavioral_config():
     try:
         data = request.get_json()
-        config_dir = os.path.join(os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite'), 'configs', 'behavioral_analysis')
+        config_dir = os.path.join(os.environ.get('AEGIS_HOME', '/opt/aegis-security-suite'), 'configs', 'behavioral_analysis')
         os.makedirs(config_dir, exist_ok=True)
         config_path = os.path.join(config_dir, 'config.json')
         with open(config_path, 'w') as f:
@@ -735,7 +735,7 @@ def save_behavioral_config():
 @require_role('admin')
 def reset_behavioral_config():
     try:
-        config_dir = os.path.join(os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite'), 'configs', 'behavioral_analysis')
+        config_dir = os.path.join(os.environ.get('AEGIS_HOME', '/opt/aegis-security-suite'), 'configs', 'behavioral_analysis')
         config_path = os.path.join(config_dir, 'config.json')
         default_config = {
             'sensitivity': 'medium',

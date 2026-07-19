@@ -351,13 +351,13 @@ send_notification "🚨 Security Alert" "Threat detected" "security-error" "crit
 #### 3. Monitor Log Files Regularly
 ```bash
 # Check recent security events
-tail -f $HOME/security-suite/logs/audit/security_audit_*.log
+tail -f $HOME/aegis-security-suite/logs/audit/security_audit_*.log
 
 # Find errors in logs
-grep ERROR $HOME/security-suite/logs/*/*.log
+grep ERROR $HOME/aegis-security-suite/logs/*/*.log
 
 # Check for threats
-grep FOUND $HOME/security-suite/logs/*/*.log
+grep FOUND $HOME/aegis-security-suite/logs/*/*.log
 ```
 
 #### 4. Update Virus Definitions Frequently
@@ -377,23 +377,23 @@ freshclam --version
 #### 1. Review Security Scan Results
 ```bash
 # Check latest scan results
-ls -la $HOME/security-suite/logs/daily/
-cat $HOME/security-suite/logs/daily/security_scan_*.log
+ls -la $HOME/aegis-security-suite/logs/daily/
+cat $HOME/aegis-security-suite/logs/daily/security_scan_*.log
 
 # Look for threats
-grep -i "threat\|found\|infected" $HOME/security-suite/logs/*/*.log
+grep -i "threat\|found\|infected" $HOME/aegis-security-suite/logs/*/*.log
 ```
 
 #### 2. Investigate Warnings and Errors
 ```bash
 # Find recent warnings
-grep WARNING $HOME/security-suite/logs/*/*.log
+grep WARNING $HOME/aegis-security-suite/logs/*/*.log
 
 # Check error details
-grep ERROR $HOME/security-suite/logs/error/security_errors_*.log
+grep ERROR $HOME/aegis-security-suite/logs/error/security_errors_*.log
 
 # Analyze audit trail
-grep "FAILED\|DENIED" $HOME/security-suite/logs/audit/sudo_operations_*.log
+grep "FAILED\|DENIED" $HOME/aegis-security-suite/logs/audit/sudo_operations_*.log
 ```
 
 #### 3. Take Appropriate Action on Detected Threats
@@ -422,7 +422,7 @@ grep "FAILED\|DENIED" $HOME/security-suite/logs/audit/sudo_operations_*.log
 #### 4. Document Security Incidents
 ```bash
 # Create incident report
-cat > $HOME/security-suite/logs/incident_$(date +%Y%m%d_%H%M%S).log << EOF
+cat > $HOME/aegis-security-suite/logs/incident_$(date +%Y%m%d_%H%M%S).log << EOF
 Incident Type: Security Threat
 Date: $(date)
 Description: [Detailed description]
@@ -447,11 +447,11 @@ echo "<script>alert('xss')</script>" | ./security-scanner.sh
 #### 2. Permission Testing
 ```bash
 # Check file permissions
-find $HOME/security-suite -type f -exec ls -la {} \;
+find $HOME/aegis-security-suite -type f -exec ls -la {} \;
 
 # Test directory access
-ls -la $HOME/security-suite/configs/
-ls -la $HOME/security-suite/logs/
+ls -la $HOME/aegis-security-suite/configs/
+ls -la $HOME/aegis-security-suite/logs/
 ```
 
 #### 3. Sudo Operation Testing

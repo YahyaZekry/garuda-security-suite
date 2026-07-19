@@ -13,7 +13,7 @@ NC='\033[0m' # No Color
 
 # Script configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SECURITY_SUITE_HOME="$(dirname "$SCRIPT_DIR")"
+AEGIS_HOME="$(dirname "$SCRIPT_DIR")"
 
 # Function to print colored output
 print_status() {
@@ -36,11 +36,11 @@ print_error() {
 load_config() {
     print_status "Loading security suite configuration..."
     
-    if [ -f "$SECURITY_SUITE_HOME/configs/security-config.conf" ]; then
-        source "$SECURITY_SUITE_HOME/configs/security-config.conf"
+    if [ -f "$AEGIS_HOME/configs/security-config.conf" ]; then
+        source "$AEGIS_HOME/configs/security-config.conf"
         print_success "Configuration loaded successfully"
     else
-        print_error "Configuration file not found: $SECURITY_SUITE_HOME/configs/security-config.conf"
+        print_error "Configuration file not found: $AEGIS_HOME/configs/security-config.conf"
         return 1
     fi
 }
@@ -50,19 +50,19 @@ create_directories() {
     print_status "Creating directory structure..."
     
     # Create main directories
-    mkdir -p "$SECURITY_SUITE_HOME/logs"/{daily,weekly,monthly,manual}
-    mkdir -p "$SECURITY_SUITE_HOME/configs"/{behavioral_analysis,incident_response,threat_intelligence}
-    mkdir -p "$SECURITY_SUITE_HOME/evidence"
-    mkdir -p "$SECURITY_SUITE_HOME/quarantine"
-    mkdir -p "$SECURITY_SUITE_HOME/backups"
+    mkdir -p "$AEGIS_HOME/logs"/{daily,weekly,monthly,manual}
+    mkdir -p "$AEGIS_HOME/configs"/{behavioral_analysis,incident_response,threat_intelligence}
+    mkdir -p "$AEGIS_HOME/evidence"
+    mkdir -p "$AEGIS_HOME/quarantine"
+    mkdir -p "$AEGIS_HOME/backups"
     mkdir -p "$THREAT_DB_DIR/cache"
     
     # Set proper permissions
-    chmod 700 "$SECURITY_SUITE_HOME/configs"
-    chmod 700 "$SECURITY_SUITE_HOME/evidence"
-    chmod 700 "$SECURITY_SUITE_HOME/quarantine"
-    chmod 755 "$SECURITY_SUITE_HOME/logs"
-    chmod 755 "$SECURITY_SUITE_HOME/backups"
+    chmod 700 "$AEGIS_HOME/configs"
+    chmod 700 "$AEGIS_HOME/evidence"
+    chmod 700 "$AEGIS_HOME/quarantine"
+    chmod 755 "$AEGIS_HOME/logs"
+    chmod 755 "$AEGIS_HOME/backups"
     
     print_success "Directory structure created"
 }

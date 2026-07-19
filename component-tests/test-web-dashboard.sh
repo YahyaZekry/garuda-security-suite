@@ -323,9 +323,9 @@ test_database_integration() {
     
     # Test database paths
     local db_paths=(
-        "$SECURITY_SUITE_HOME/configs/behavioral_analysis/behavioral_data.db"
-        "$SECURITY_SUITE_HOME/configs/threat_intelligence/ioc_database.db"
-        "$SECURITY_SUITE_HOME/configs/incident_response/incidents.db"
+        "$AEGIS_HOME/configs/behavioral_analysis/behavioral_data.db"
+        "$AEGIS_HOME/configs/threat_intelligence/ioc_database.db"
+        "$AEGIS_HOME/configs/incident_response/incidents.db"
     )
     
     for db_path in "${db_paths[@]}"; do

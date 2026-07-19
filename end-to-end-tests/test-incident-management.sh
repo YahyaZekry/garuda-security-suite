@@ -74,7 +74,7 @@ test_incident_creation_triage() {
                     log_pass "$severity severity incident created: $incident_id"
                     
                     # Verify incident in database
-                    local incident_db="$SECURITY_SUITE_HOME/configs/incident_response/incidents.db"
+                    local incident_db="$AEGIS_HOME/configs/incident_response/incidents.db"
                     if [ -f "$incident_db" ] && command -v sqlite3 &> /dev/null; then
                         local incident_count=$(sqlite3 "$incident_db" "SELECT COUNT(*) FROM incidents WHERE id = '$incident_id';" 2>/dev/null || echo "0")
                         
@@ -170,7 +170,7 @@ test_incident_investigation() {
                 fi
                 
                 # Verify evidence files
-                local evidence_dir="$SECURITY_SUITE_HOME/evidence"
+                local evidence_dir="$AEGIS_HOME/evidence"
                 if [ -d "$evidence_dir" ]; then
                     local evidence_count=$(find "$evidence_dir" -name "${incident_id}_*" -type f | wc -l)
                     
@@ -246,7 +246,7 @@ test_incident_escalation_notification() {
                 fi
                 
                 # Verify escalation in database
-                local incident_db="$SECURITY_SUITE_HOME/configs/incident_response/incidents.db"
+                local incident_db="$AEGIS_HOME/configs/incident_response/incidents.db"
                 if [ -f "$incident_db" ] && command -v sqlite3 &> /dev/null; then
                     local escalation_level=$(sqlite3 "$incident_db" "SELECT escalation_level FROM incidents WHERE id = '$incident_id';" 2>/dev/null || echo "")
                     
@@ -338,7 +338,7 @@ test_incident_resolution_closure() {
                 fi
                 
                 # Verify resolution in database
-                local incident_db="$SECURITY_SUITE_HOME/configs/incident_response/incidents.db"
+                local incident_db="$AEGIS_HOME/configs/incident_response/incidents.db"
                 if [ -f "$incident_db" ] && command -v sqlite3 &> /dev/null; then
                     local incident_status=$(sqlite3 "$incident_db" "SELECT status FROM incidents WHERE id = '$incident_id';" 2>/dev/null || echo "")
                     
@@ -623,7 +623,7 @@ test_incident_workflow_automation() {
                 fi
                 
                 # Verify automation in database
-                local incident_db="$SECURITY_SUITE_HOME/configs/incident_response/incidents.db"
+                local incident_db="$AEGIS_HOME/configs/incident_response/incidents.db"
                 if [ -f "$incident_db" ] && command -v sqlite3 &> /dev/null; then
                     local automation_flags=$(sqlite3 "$incident_db" "SELECT automated_triage, automated_evidence, automated_notification FROM incidents WHERE id = '$incident_id';" 2>/dev/null || echo "")
                     
@@ -688,7 +688,7 @@ test_incident_performance_scalability() {
         log_info "Testing incident query performance..."
         
         local query_start=$(date +%s.%N)
-        local incident_db="$SECURITY_SUITE_HOME/configs/incident_response/incidents.db"
+        local incident_db="$AEGIS_HOME/configs/incident_response/incidents.db"
         
         if [ -f "$incident_db" ] && command -v sqlite3 &> /dev/null; then
             local query_result=$(sqlite3 "$incident_db" "SELECT COUNT(*) FROM incidents WHERE title LIKE 'Performance Test%';" 2>/dev/null || echo "0")
@@ -755,7 +755,7 @@ test_incident_security_access_control() {
                 # Test data encryption
                 log_info "Testing incident data encryption..."
                 
-                local incident_db="$SECURITY_SUITE_HOME/configs/incident_response/incidents.db"
+                local incident_db="$AEGIS_HOME/configs/incident_response/incidents.db"
                 if [ -f "$incident_db" ] && command -v sqlite3 &> /dev/null; then
                     # Check if sensitive data is encrypted
                     local description_data=$(sqlite3 "$incident_db" "SELECT description FROM incidents WHERE id = '$incident_id';" 2>/dev/null || echo "")
@@ -795,7 +795,7 @@ test_incident_security_access_control() {
                 # Test audit logging
                 log_info "Testing incident audit logging..."
                 
-                local audit_log="$SECURITY_SUITE_HOME/logs/incident_audit.log"
+                local audit_log="$AEGIS_HOME/logs/incident_audit.log"
                 if [ -f "$audit_log" ]; then
                     local audit_entries=$(grep "$incident_id" "$audit_log" | wc -l)
                     
@@ -825,7 +825,7 @@ test_incident_component_integration() {
     # Test integration with behavioral analysis
     log_info "Testing integration with behavioral analysis..."
     
-    local behavioral_db="$SECURITY_SUITE_HOME/configs/behavioral_analysis/behavioral_data.db"
+    local behavioral_db="$AEGIS_HOME/configs/behavioral_analysis/behavioral_data.db"
     if [ -f "$behavioral_db" ] && command -v sqlite3 &> /dev/null; then
         # Create behavioral anomaly
         sqlite3 "$behavioral_db" << EOF 2>/dev/null
@@ -836,7 +836,7 @@ EOF
         # Check if incident is created from anomaly
         sleep 2
         
-        local incident_db="$SECURITY_SUITE_HOME/configs/incident_response/incidents.db"
+        local incident_db="$AEGIS_HOME/configs/incident_response/incidents.db"
         if [ -f "$incident_db" ] && command -v sqlite3 &> /dev/null; then
             local behavioral_incidents=$(sqlite3 "$incident_db" "SELECT COUNT(*) FROM incidents WHERE source = 'behavioral_analysis' AND created_at > datetime('now', '-5 minutes');" 2>/dev/null || echo "0")
             
@@ -853,7 +853,7 @@ EOF
     # Test integration with threat intelligence
     log_info "Testing integration with threat intelligence..."
     
-    local threat_db="$SECURITY_SUITE_HOME/configs/threat_intelligence/ioc_database.db"
+    local threat_db="$AEGIS_HOME/configs/threat_intelligence/ioc_database.db"
     if [ -f "$threat_db" ] && command -v sqlite3 &> /dev/null; then
         # Create high-confidence threat
         sqlite3 "$threat_db" << EOF 2>/dev/null
@@ -864,7 +864,7 @@ EOF
         # Check if incident is created from threat intelligence
         sleep 2
         
-        local incident_db="$SECURITY_SUITE_HOME/configs/incident_response/incidents.db"
+        local incident_db="$AEGIS_HOME/configs/incident_response/incidents.db"
         if [ -f "$incident_db" ] && command -v sqlite3 &> /dev/null; then
             local threat_incidents=$(sqlite3 "$incident_db" "SELECT COUNT(*) FROM incidents WHERE source = 'threat_intelligence' AND created_at > datetime('now', '-5 minutes');" 2>/dev/null || echo "0")
             
@@ -888,7 +888,7 @@ EOF
         sleep 3
         
         # Check if incidents are created from scan results
-        local incident_db="$SECURITY_SUITE_HOME/configs/incident_response/incidents.db"
+        local incident_db="$AEGIS_HOME/configs/incident_response/incidents.db"
         if [ -f "$incident_db" ] && command -v sqlite3 &> /dev/null; then
             local scan_incidents=$(sqlite3 "$incident_db" "SELECT COUNT(*) FROM incidents WHERE source = 'security_scan' AND created_at > datetime('now', '-5 minutes');" 2>/dev/null || echo "0")
             
@@ -912,20 +912,20 @@ cleanup() {
     log_info "Cleaning up incident management test environment..."
     
     # Clean up test incidents
-    local incident_db="$SECURITY_SUITE_HOME/configs/incident_response/incidents.db"
+    local incident_db="$AEGIS_HOME/configs/incident_response/incidents.db"
     if command -v sqlite3 &> /dev/null; then
         [ -f "$incident_db" ] && sqlite3 "$incident_db" "DELETE FROM incidents WHERE title LIKE '%Test%' OR title LIKE '%test%' OR title LIKE 'Performance Test%' OR title LIKE 'Analytics Test%' OR title LIKE 'Integration Test%' OR title LIKE 'Automation Test%' OR title LIKE 'Security Test%' OR title LIKE 'Concurrent Test%' OR title LIKE 'Dashboard Integration%' OR title LIKE 'Resolution Test%' OR title LIKE 'Escalation Test%' OR title LIKE 'Investigation Test%';" 2>/dev/null || true
     fi
     
     # Clean up test evidence
-    local evidence_dir="$SECURITY_SUITE_HOME/evidence"
+    local evidence_dir="$AEGIS_HOME/evidence"
     if [ -d "$evidence_dir" ]; then
         find "$evidence_dir" -name "TEST_*" -type f -delete 2>/dev/null || true
         find "$evidence_dir" -name "*_test_*" -type f -delete 2>/dev/null || true
     fi
     
     # Clean up test reports
-    local reports_dir="$SECURITY_SUITE_HOME/reports"
+    local reports_dir="$AEGIS_HOME/reports"
     if [ -d "$reports_dir" ]; then
         find "$reports_dir" -name "*test*" -type f -delete 2>/dev/null || true
     fi

@@ -1,8 +1,8 @@
 #!/bin/bash
 # Simple Threat Feed Scheduling Setup
 
-SECURITY_SUITE_HOME="$(dirname "$(dirname "$0)")"
-THREAT_INTEL_SCRIPT="$SECURITY_SUITE_HOME/scripts/threat-intelligence-optimized.sh"
+AEGIS_HOME="$(dirname "$(dirname "$0")")"
+THREAT_INTEL_SCRIPT="$AEGIS_HOME/scripts/threat-intelligence-optimized.sh"
 
 echo "Setting up automated threat feed updates..."
 

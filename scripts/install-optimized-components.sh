@@ -11,8 +11,8 @@ setup_user_environment
 SCRIPT_DIR="$(dirname "$0")"
 
 # Installation configuration
-BACKUP_DIR="$SECURITY_SUITE_HOME/backups/optimized-$(date +%Y%m%d_%H%M%S)"
-INSTALL_LOG="$SECURITY_SUITE_HOME/logs/optimized-install-$(date +%Y%m%d_%H%M%S).log"
+BACKUP_DIR="$AEGIS_HOME/backups/optimized-$(date +%Y%m%d_%H%M%S)"
+INSTALL_LOG="$AEGIS_HOME/logs/optimized-install-$(date +%Y%m%d_%H%M%S).log"
 
 # Colors for output
 RED='\033[0;31m'
@@ -54,7 +54,7 @@ backup_existing_files() {
     )
     
     for file in "${files_to_backup[@]}"; do
-        local source_file="$SECURITY_SUITE_HOME/$file"
+        local source_file="$AEGIS_HOME/$file"
         local backup_file="$BACKUP_DIR/$file"
         
         if [ -f "$source_file" ]; then
@@ -91,7 +91,7 @@ Wants=network.target
 Type=simple
 User=$CURRENT_USER
 Group=$CURRENT_USER
-ExecStart=$SECURITY_SUITE_HOME/scripts/behavioral-monitor-optimized.sh
+ExecStart=$AEGIS_HOME/scripts/behavioral-monitor-optimized.sh
 ExecReload=/bin/kill -HUP $MAINPID
 KillMode=mixed
 KillSignal=SIGTERM
@@ -105,7 +105,7 @@ StartLimitInterval=300
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=$SECURITY_SUITE_HOME/logs
+ReadWritePaths=$AEGIS_HOME/logs
 PrivateTmp=true
 ProtectKernelTunables=true
 ProtectControlGroups=true
@@ -114,7 +114,7 @@ MemoryMax=256M
 CPUQuota=30%
 
 # Environment
-Environment=SECURITY_SUITE_HOME=$SECURITY_SUITE_HOME
+Environment=AEGIS_HOME=$AEGIS_HOME
 Environment=BEHAVIORAL_ANALYSIS_ENABLED=true
 Environment=BEHAVIORAL_MONITORING_INTERVAL=30
 Environment=BEHAVIORAL_THREAT_SCORE_THRESHOLD=70
@@ -173,8 +173,8 @@ Wants=network.target
 Type=simple
 User=$CURRENT_USER
 Group=$CURRENT_USER
-WorkingDirectory=$SECURITY_SUITE_HOME/web-dashboard
-ExecStart=/usr/bin/python3 $SECURITY_SUITE_HOME/web-dashboard/app.py
+WorkingDirectory=$AEGIS_HOME/web-dashboard
+ExecStart=/usr/bin/python3 $AEGIS_HOME/web-dashboard/app.py
 ExecReload=/bin/kill -HUP $MAINPID
 KillMode=mixed
 KillSignal=SIGTERM
@@ -188,9 +188,9 @@ StartLimitInterval=300
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=$SECURITY_SUITE_HOME/logs
-ReadWritePaths=$SECURITY_SUITE_HOME/configs
-ReadWritePaths=$SECURITY_SUITE_HOME/web-dashboard
+ReadWritePaths=$AEGIS_HOME/logs
+ReadWritePaths=$AEGIS_HOME/configs
+ReadWritePaths=$AEGIS_HOME/web-dashboard
 PrivateTmp=true
 ProtectKernelTunables=true
 ProtectControlGroups=true
@@ -199,9 +199,9 @@ MemoryMax=512M
 CPUQuota=50%
 
 # Environment
-Environment=SECURITY_SUITE_HOME=$SECURITY_SUITE_HOME
+Environment=AEGIS_HOME=$AEGIS_HOME
 Environment=FLASK_ENV=production
-Environment=PYTHONPATH=$SECURITY_SUITE_HOME/web-dashboard
+Environment=PYTHONPATH=$AEGIS_HOME/web-dashboard
 
 [Install]
 WantedBy=multi-user.target
@@ -226,7 +226,7 @@ install_memory_monitor() {
         mkdir -p "$HOME/.config/systemd/user"
         
         # Process service template to replace variables
-        sed "s|\${SECURITY_SUITE_HOME}|$SECURITY_SUITE_HOME|g" \
+        sed "s|\${AEGIS_HOME}|$AEGIS_HOME|g" \
             "$SCRIPT_DIR/memory-monitor.service" > "$HOME/.config/systemd/user/memory-monitor.service"
         
         # Reload systemd
@@ -266,7 +266,7 @@ install_performance_tools() {
 update_configuration() {
     log_info "Updating configuration for optimized components..."
     
-    local config_file="$SECURITY_SUITE_HOME/configs/security-config.conf"
+    local config_file="$AEGIS_HOME/configs/security-config.conf"
     
     # Backup original config
     if [ -f "$config_file" ]; then
@@ -324,7 +324,7 @@ create_optimization_scripts() {
 # Enable Optimized Components Script
 
 SCRIPT_DIR="$(dirname "$0")"
-SECURITY_SUITE_HOME="$(dirname "$SCRIPT_DIR")"
+AEGIS_HOME="$(dirname "$SCRIPT_DIR")"
 
 echo "Enabling optimized Aegis Security Suite components..."
 
@@ -347,7 +347,7 @@ EOF
 # Disable Optimized Components Script
 
 SCRIPT_DIR="$(dirname "$0")"
-SECURITY_SUITE_HOME="$(dirname "$SCRIPT_DIR")"
+AEGIS_HOME="$(dirname "$SCRIPT_DIR")"
 
 echo "Disabling optimized Aegis Security Suite components..."
 
@@ -444,7 +444,7 @@ main() {
     log_info "Backup directory: $BACKUP_DIR"
     
     # Create logs directory
-    mkdir -p "$SECURITY_SUITE_HOME/logs"
+    mkdir -p "$AEGIS_HOME/logs"
     
     # Backup existing files
     backup_existing_files
@@ -470,7 +470,7 @@ main() {
         echo "Next steps:"
         echo "1. Run '$SCRIPT_DIR/enable-optimized.sh' to enable optimized components"
         echo "2. Run '$SCRIPT_DIR/performance-test-optimized.sh all' to test performance"
-        echo "3. Monitor logs in $SECURITY_SUITE_HOME/logs/"
+        echo "3. Monitor logs in $AEGIS_HOME/logs/"
         echo "4. Check service status with 'systemctl --user status'"
         echo ""
         echo "Backup of original files available at: $BACKUP_DIR"

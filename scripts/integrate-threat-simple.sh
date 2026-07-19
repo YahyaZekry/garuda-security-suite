@@ -1,18 +1,18 @@
 #!/bin/bash
 # Simple Threat Intelligence Integration
 
-SECURITY_SUITE_HOME="$(dirname "$(dirname "$0)")"
-IOC_DATABASE="$SECURITY_SUITE_HOME/configs/threat_intelligence/ioc_database.db"
+AEGIS_HOME="$(dirname "$(dirname "$0")")"
+IOC_DATABASE="$AEGIS_HOME/configs/threat_intelligence/ioc_database.db"
 
 echo "Integrating threat intelligence with scanning components..."
 
 # Create enhanced ClamAV scanner with threat intelligence
-cat > "$SECURITY_SUITE_HOME/scripts/scanners/clamav-with-threat-intel.sh" << 'EOF'
+cat > "$AEGIS_HOME/scripts/scanners/clamav-with-threat-intel.sh" << 'EOF'
 #!/bin/bash
 # ClamAV Scanner with Threat Intelligence Integration
 
 SCAN_PATH="${1:-$HOME}"
-IOC_DATABASE="$SECURITY_SUITE_HOME/configs/threat_intelligence/ioc_database.db"
+IOC_DATABASE="$AEGIS_HOME/configs/threat_intelligence/ioc_database.db"
 
 echo "Starting ClamAV scan with threat intelligence integration for: $SCAN_PATH"
 
@@ -38,11 +38,11 @@ fi
 EOF
 
 # Create enhanced RKHunter scanner with threat intelligence
-cat > "$SECURITY_SUITE_HOME/scripts/scanners/rkhunter-with-threat-intel.sh" << 'EOF'
+cat > "$AEGIS_HOME/scripts/scanners/rkhunter-with-threat-intel.sh" << 'EOF'
 #!/bin/bash
 # RKHunter Scanner with Threat Intelligence Integration
 
-IOC_DATABASE="$SECURITY_SUITE_HOME/configs/threat_intelligence/ioc_database.db"
+IOC_DATABASE="$AEGIS_HOME/configs/threat_intelligence/ioc_database.db"
 
 echo "Starting RKHunter scan with threat intelligence integration"
 
@@ -72,10 +72,10 @@ fi
 EOF
 
 # Make the enhanced scanners executable
-chmod +x "$SECURITY_SUITE_HOME/scripts/scanners/clamav-with-threat-intel.sh"
-chmod +x "$SECURITY_SUITE_HOME/scripts/scanners/rkhunter-with-threat-intel.sh"
+chmod +x "$AEGIS_HOME/scripts/scanners/clamav-with-threat-intel.sh"
+chmod +x "$AEGIS_HOME/scripts/scanners/rkhunter-with-threat-intel.sh"
 
 echo "Threat intelligence integration completed"
 echo "Enhanced scanners created:"
-echo "  - $SECURITY_SUITE_HOME/scripts/scanners/clamav-with-threat-intel.sh"
-echo "  - $SECURITY_SUITE_HOME/scripts/scanners/rkhunter-with-threat-intel.sh"
+echo "  - $AEGIS_HOME/scripts/scanners/clamav-with-threat-intel.sh"
+echo "  - $AEGIS_HOME/scripts/scanners/rkhunter-with-threat-intel.sh"

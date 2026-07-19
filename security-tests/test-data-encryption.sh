@@ -55,9 +55,9 @@ test_database_encryption() {
     log_test "Testing Database Encryption"
     
     local databases=(
-        "$SECURITY_SUITE_HOME/configs/behavioral_analysis/behavioral_data.db"
-        "$SECURITY_SUITE_HOME/configs/threat_intelligence/ioc_database.db"
-        "$SECURITY_SUITE_HOME/configs/incident_response/incidents.db"
+        "$AEGIS_HOME/configs/behavioral_analysis/behavioral_data.db"
+        "$AEGIS_HOME/configs/threat_intelligence/ioc_database.db"
+        "$AEGIS_HOME/configs/incident_response/incidents.db"
     )
     
     for db in "${databases[@]}"; do
@@ -146,9 +146,9 @@ test_sensitive_data_protection() {
     
     # Check for sensitive data in logs
     local log_dirs=(
-        "$SECURITY_SUITE_HOME/logs/error"
-        "$SECURITY_SUITE_HOME/logs/manual"
-        "$SECURITY_SUITE_HOME/logs/behavioral"
+        "$AEGIS_HOME/logs/error"
+        "$AEGIS_HOME/logs/manual"
+        "$AEGIS_HOME/logs/behavioral"
     )
     
     for log_dir in "${log_dirs[@]}"; do
@@ -200,9 +200,9 @@ test_file_system_permissions() {
     # Check critical file permissions
     local critical_files=(
         "$PROJECT_ROOT/configs/security-config.conf"
-        "$SECURITY_SUITE_HOME/configs/behavioral_analysis/behavioral_data.db"
-        "$SECURITY_SUITE_HOME/configs/threat_intelligence/ioc_database.db"
-        "$SECURITY_SUITE_HOME/configs/incident_response/incidents.db"
+        "$AEGIS_HOME/configs/behavioral_analysis/behavioral_data.db"
+        "$AEGIS_HOME/configs/threat_intelligence/ioc_database.db"
+        "$AEGIS_HOME/configs/incident_response/incidents.db"
         "$PROJECT_ROOT/web-dashboard/app.py"
     )
     
@@ -239,10 +239,10 @@ test_file_system_permissions() {
     
     # Check directory permissions
     local critical_dirs=(
-        "$SECURITY_SUITE_HOME/configs"
-        "$SECURITY_SUITE_HOME/logs"
-        "$SECURITY_SUITE_HOME/evidence"
-        "$SECURITY_SUITE_HOME/quarantine"
+        "$AEGIS_HOME/configs"
+        "$AEGIS_HOME/logs"
+        "$AEGIS_HOME/evidence"
+        "$AEGIS_HOME/quarantine"
     )
     
     for dir in "${critical_dirs[@]}"; do
@@ -278,7 +278,7 @@ test_data_backup_security() {
     
     local backups_found=false
     for pattern in "${backup_patterns[@]}"; do
-        local backups=$(find "$SECURITY_SUITE_HOME" -name "$pattern" -type f 2>/dev/null || true)
+        local backups=$(find "$AEGIS_HOME" -name "$pattern" -type f 2>/dev/null || true)
         
         if [ -n "$backups" ]; then
             backups_found=true
@@ -319,7 +319,7 @@ test_session_data_security() {
     local session_locations=(
         "/tmp"
         "/var/tmp"
-        "$SECURITY_SUITE_HOME/sessions"
+        "$AEGIS_HOME/sessions"
         "$HOME/.local/share/aegis-sessions"
     )
     
@@ -416,8 +416,8 @@ test_evidence_quarantine_security() {
     log_test "Testing Evidence and Quarantine Security"
     
     # Check evidence directory security
-    if [ -d "$SECURITY_SUITE_HOME/evidence" ]; then
-        local evidence_perms=$(stat -c "%a" "$SECURITY_SUITE_HOME/evidence" 2>/dev/null || echo "000")
+    if [ -d "$AEGIS_HOME/evidence" ]; then
+        local evidence_perms=$(stat -c "%a" "$AEGIS_HOME/evidence" 2>/dev/null || echo "000")
         log_info "Evidence directory permissions: $evidence_perms"
         
         if [[ "$evidence_perms" =~ .*[4-7].*[4-7] ]]; then
@@ -427,7 +427,7 @@ test_evidence_quarantine_security() {
         fi
         
         # Check evidence file integrity
-        local evidence_files=$(find "$SECURITY_SUITE_HOME/evidence" -type f 2>/dev/null || true)
+        local evidence_files=$(find "$AEGIS_HOME/evidence" -type f 2>/dev/null || true)
         
         if [ -n "$evidence_files" ]; then
             local tampered_files=0
@@ -466,8 +466,8 @@ test_evidence_quarantine_security() {
     fi
     
     # Check quarantine directory security
-    if [ -d "$SECURITY_SUITE_HOME/quarantine" ]; then
-        local quarantine_perms=$(stat -c "%a" "$SECURITY_SUITE_HOME/quarantine" 2>/dev/null || echo "000")
+    if [ -d "$AEGIS_HOME/quarantine" ]; then
+        local quarantine_perms=$(stat -c "%a" "$AEGIS_HOME/quarantine" 2>/dev/null || echo "000")
         log_info "Quarantine directory permissions: $quarantine_perms"
         
         if [[ "$quarantine_perms" =~ .*[4-7].*[4-7] ]]; then
@@ -477,7 +477,7 @@ test_evidence_quarantine_security() {
         fi
         
         # Check quarantine file access
-        local quarantine_files=$(find "$SECURITY_SUITE_HOME/quarantine" -type f 2>/dev/null || true)
+        local quarantine_files=$(find "$AEGIS_HOME/quarantine" -type f 2>/dev/null || true)
         
         if [ -n "$quarantine_files" ]; then
             while IFS= read -r quarantine_file; do
@@ -498,9 +498,9 @@ test_log_file_security() {
     log_test "Testing Log File Security"
     
     local log_dirs=(
-        "$SECURITY_SUITE_HOME/logs/error"
-        "$SECURITY_SUITE_HOME/logs/manual"
-        "$SECURITY_SUITE_HOME/logs/behavioral"
+        "$AEGIS_HOME/logs/error"
+        "$AEGIS_HOME/logs/manual"
+        "$AEGIS_HOME/logs/behavioral"
     )
     
     for log_dir in "${log_dirs[@]}"; do

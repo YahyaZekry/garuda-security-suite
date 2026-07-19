@@ -19,7 +19,7 @@ DASHBOARD_USER="aegis-dashboard"
 DASHBOARD_SERVICE="aegis-dashboard"
 
 # Security suite home
-SECURITY_SUITE_HOME="${SECURITY_SUITE_HOME:-$HOME/security-suite}"
+AEGIS_HOME="${AEGIS_HOME:-$HOME/aegis-security-suite}"
 
 # Function to print colored output
 print_status() {
@@ -110,7 +110,7 @@ setup_configuration() {
     mkdir -p "$SCRIPT_DIR/config"
     
     # Update configuration with actual paths
-    sed -i "s|/opt/aegis-security-suite|$SECURITY_SUITE_HOME|g" "$SCRIPT_DIR/config/dashboard.conf"
+    sed -i "s|/opt/aegis-security-suite|$AEGIS_HOME|g" "$SCRIPT_DIR/config/dashboard.conf"
     
     # Generate secret key
     SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_hex(32))")
@@ -132,7 +132,7 @@ After=network.target
 Type=simple
 User=$DASHBOARD_USER
 WorkingDirectory=$SCRIPT_DIR
-Environment=SECURITY_SUITE_HOME=$SECURITY_SUITE_HOME
+Environment=AEGIS_HOME=$AEGIS_HOME
 Environment=FLASK_APP=app.py
 ExecStart=$SCRIPT_DIR/venv/bin/python app.py
 Restart=always
@@ -217,7 +217,7 @@ setup_log_rotation() {
     print_status "Setting up log rotation..."
     
     cat > "/etc/logrotate.d/$DASHBOARD_SERVICE" << EOF
-$SECURITY_SUITE_HOME/logs/web-dashboard.log {
+$AEGIS_HOME/logs/web-dashboard.log {
     daily
     missingok
     rotate 30
@@ -315,12 +315,12 @@ show_help() {
     echo "  --dev           Development installation (no systemd service)"
     echo ""
     echo "Environment Variables:"
-    echo "  SECURITY_SUITE_HOME    Path to security suite installation"
+    echo "  AEGIS_HOME    Path to security suite installation"
     echo ""
     echo "Examples:"
     echo "  $0                    # Standard installation"
     echo "  $0 --no-nginx         # Install without Nginx"
-    echo "  SECURITY_SUITE_HOME=/opt/security $0  # Custom path"
+    echo "  AEGIS_HOME=/opt/security $0  # Custom path"
 }
 
 # Main installation function
@@ -362,7 +362,7 @@ main() {
     done
     
     echo "🚀 Installing $DASHBOARD_NAME"
-    echo "Security Suite Home: $SECURITY_SUITE_HOME"
+    echo "Security Suite Home: $AEGIS_HOME"
     echo "Dashboard Directory: $SCRIPT_DIR"
     echo ""
     

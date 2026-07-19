@@ -4,8 +4,8 @@
 
 # Load configuration and functions
 SCRIPT_DIR="$(dirname "$0")"
-SECURITY_SUITE_HOME="$(dirname "$SCRIPT_DIR")"
-source "$SECURITY_SUITE_HOME/configs/security-config.conf"
+AEGIS_HOME="$(dirname "$SCRIPT_DIR")"
+source "$AEGIS_HOME/configs/security-config.conf"
 source "$SCRIPT_DIR/common-functions.sh"
 
 # Load behavioral analysis if enabled
@@ -38,7 +38,7 @@ if [ "$BEHAVIORAL_ANALYSIS_ENABLED" = "true" ]; then
     
     # Validate configuration
     if [ -z "$BEHAVIORAL_DATABASE" ]; then
-        BEHAVIORAL_DATABASE="$SECURITY_SUITE_HOME/configs/behavioral_analysis/behavioral_data.db"
+        BEHAVIORAL_DATABASE="$AEGIS_HOME/configs/behavioral_analysis/behavioral_data.db"
     fi
     
     # Initialize and validate database connection

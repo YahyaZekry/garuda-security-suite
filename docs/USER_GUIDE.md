@@ -70,8 +70,8 @@ The Aegis Security Suite is designed specifically for Aegis Linux and requires t
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/aegis-linux/security-suite.git
-   cd security-suite
+   git clone https://github.com/aegis-linux/aegis-security-suite.git
+   cd aegis-security-suite
    ```
 
 2. Run the installation script:
@@ -96,9 +96,9 @@ The Aegis Security Suite is designed specifically for Aegis Linux and requires t
 
 3. Set up the security suite directory:
    ```bash
-   sudo mkdir -p $HOME/security-suite
-   sudo cp -r * $HOME/security-suite/
-   sudo chown -R $USER:$USER $HOME/security-suite
+   sudo mkdir -p $HOME/aegis-security-suite
+   sudo cp -r * $HOME/aegis-security-suite/
+   sudo chown -R $USER:$USER $HOME/aegis-security-suite
    ```
 
 ### Initial Configuration
@@ -119,7 +119,7 @@ After installation, perform these initial configuration steps:
 
 3. **Create Directories**:
    ```bash
-   mkdir -p $HOME/security-suite/{logs,reports,quarantine,evidence}
+   mkdir -p $HOME/aegis-security-suite/{logs,reports,quarantine,evidence}
    ```
 
 ### First-time Setup
@@ -160,7 +160,7 @@ The Aegis Security Suite provides a comprehensive web-based dashboard for monito
 
 2. **Manual Start**:
    ```bash
-   cd $SECURITY_SUITE_HOME/web-dashboard
+   cd $AEGIS_HOME/web-dashboard
    ./start-dashboard.sh
    ```
 
@@ -408,10 +408,10 @@ Understanding scan results is crucial for effective security management.
 2. **Via Command Line**:
    ```bash
    # View latest scan report
-   cat $HOME/security-suite/reports/latest_scan_report.txt
+   cat $HOME/aegis-security-suite/reports/latest_scan_report.txt
    
    # List all scan reports
-   ls -la $HOME/security-suite/reports/
+   ls -la $HOME/aegis-security-suite/reports/
    ```
 
 ### Managing Quarantine
@@ -427,7 +427,7 @@ Quarantine isolates detected threats to prevent system damage.
 
 2. **View Quarantined Items**:
    ```bash
-   ls -la $HOME/security-suite/quarantine/
+   ls -la $HOME/aegis-security-suite/quarantine/
    ```
 
 3. **Restore from Quarantine**:
@@ -457,7 +457,7 @@ Configure quarantine behavior in `configs/security-config.conf`:
 AUTO_QUARANTINE=true
 
 # Quarantine directory
-QUARANTINE_DIR="$HOME/security-suite/quarantine"
+QUARANTINE_DIR="$HOME/aegis-security-suite/quarantine"
 
 # Maximum quarantine size (MB)
 MAX_QUARANTINE_SIZE=1024
@@ -802,7 +802,7 @@ Proper evidence collection is crucial for incident investigation and potential l
 1. **Immediate Preservation**:
    ```bash
    # Create evidence directory
-   mkdir -p $HOME/security-suite/evidence/INC_$(date +%Y%m%d_%H%M%S)_$(uuidgen | cut -c1-8)
+   mkdir -p $HOME/aegis-security-suite/evidence/INC_$(date +%Y%m%d_%H%M%S)_$(uuidgen | cut -c1-8)
    
    # Collect system state
    ./scripts/incident-response.sh --collect-evidence --type system_state
@@ -1714,8 +1714,8 @@ Scheduling configuration determines when automated security operations are perfo
    crontab -e
    
    # Example cron entries
-   0 2 * * * $SECURITY_SUITE_HOME/scripts/security-daily-scan.sh
-   0 3 * * 0 $SECURITY_SUITE_HOME/scripts/security-weekly-scan.sh
+   0 2 * * * $AEGIS_HOME/scripts/security-daily-scan.sh
+   0 3 * * 0 $AEGIS_HOME/scripts/security-weekly-scan.sh
    ```
 
 ---
@@ -1865,10 +1865,10 @@ This section addresses common issues that users may encounter while using the Ae
    - **Command**: 
      ```bash
      # Check evidence directory
-     ls -la $HOME/security-suite/evidence/
+     ls -la $HOME/aegis-security-suite/evidence/
      
      # Check permissions
-     chmod 755 $HOME/security-suite/evidence/
+     chmod 755 $HOME/aegis-security-suite/evidence/
      ```
 
 #### Threat Intelligence Issues
@@ -1934,16 +1934,16 @@ When troubleshooting complex issues, follow these systematic debugging procedure
 2. **Application Logs**:
    ```bash
    # View application logs
-   tail -f $HOME/security-suite/logs/security-suite.log
-   tail -f $HOME/security-suite/logs/behavioral-analysis.log
-   tail -f $HOME/security-suite/logs/incident-response.log
+   tail -f $HOME/aegis-security-suite/logs/security-suite.log
+   tail -f $HOME/aegis-security-suite/logs/behavioral-analysis.log
+   tail -f $HOME/aegis-security-suite/logs/incident-response.log
    ```
 
 3. **Error Logs**:
    ```bash
    # View error logs
-   tail -f $HOME/security-suite/logs/errors.log
-   grep -i error $HOME/security-suite/logs/*.log
+   tail -f $HOME/aegis-security-suite/logs/errors.log
+   grep -i error $HOME/aegis-security-suite/logs/*.log
    ```
 
 #### Diagnostic Commands
@@ -1996,7 +1996,7 @@ The Aegis Security Suite maintains comprehensive logs for troubleshooting and an
 
 #### Main Log Directory
 
-All logs are stored in `$HOME/security-suite/logs/`:
+All logs are stored in `$HOME/aegis-security-suite/logs/`:
 
 1. **Application Logs**:
    - `security-suite.log` - Main application log
@@ -2064,8 +2064,8 @@ When encountering issues that cannot be resolved through troubleshooting, utiliz
 #### Community Support
 
 1. **GitHub Issues**:
-   - Report bugs: https://github.com/aegis-linux/security-suite/issues
-   - Feature requests: https://github.com/aegis-linux/security-suite/issues/new
+   - Report bugs: https://github.com/aegis-linux/aegis-security-suite/issues
+   - Feature requests: https://github.com/aegis-linux/aegis-security-suite/issues/new
 
 2. **Forums**:
    - Aegis Linux Forums: https://forum.aegislinux.org
@@ -2114,8 +2114,8 @@ For users who want to get started quickly, follow these essential steps:
 
 ```bash
 # Clone repository
-git clone https://github.com/aegis-linux/security-suite.git
-cd security-suite
+git clone https://github.com/aegis-linux/aegis-security-suite.git
+cd aegis-security-suite
 
 # Run installation script
 sudo ./setup-aegis.sh

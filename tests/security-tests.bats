@@ -33,7 +33,7 @@ teardown() {
     ! grep -r "frieso" "$PROJECT_ROOT/scripts" --include="*.sh" | grep -v "test\|example\|TEST\|Example"
     
     # Check that dynamic path resolution is used instead
-    grep -r "CURRENT_USER\|CURRENT_HOME\|SECURITY_SUITE_HOME" "$PROJECT_ROOT/scripts" --include="*.sh"
+    grep -r "CURRENT_USER\|CURRENT_HOME\|AEGIS_HOME" "$PROJECT_ROOT/scripts" --include="*.sh"
 }
 
 @test "proper file permissions are set" {
@@ -46,30 +46,30 @@ teardown() {
 
 USER="${USER:-$(whoami)}"
 HOME="${HOME:-$(getent passwd "$USER" | cut -d: -f6)}"
-SECURITY_SUITE_HOME="${SECURITY_SUITE_HOME:-$HOME/security-suite}"
+AEGIS_HOME="${AEGIS_HOME:-$HOME/aegis-security-suite}"
 
 # Create directory structure
-mkdir -p "$SECURITY_SUITE_HOME"/{scripts,configs,logs/{daily,weekly,monthly,manual,error,audit},backups}
+mkdir -p "$AEGIS_HOME"/{scripts,configs,logs/{daily,weekly,monthly,manual,error,audit},backups}
 
 # Create configuration file with proper permissions
-cat > "$SECURITY_SUITE_HOME/configs/security-config.conf" << CONFIG
+cat > "$AEGIS_HOME/configs/security-config.conf" << CONFIG
 # Test Configuration
-SECURITY_SUITE_HOME="$SECURITY_SUITE_HOME"
+AEGIS_HOME="$AEGIS_HOME"
 CONFIG
 
-chmod 600 "$SECURITY_SUITE_HOME/configs/security-config.conf"
+chmod 600 "$AEGIS_HOME/configs/security-config.conf"
 
 # Create scripts with proper permissions
-cat > "$SECURITY_SUITE_HOME/scripts/security-daily-scan.sh" << 'SCRIPT'
+cat > "$AEGIS_HOME/scripts/security-daily-scan.sh" << 'SCRIPT'
 #!/bin/bash
 echo "Test script"
 SCRIPT
 
-chmod 700 "$SECURITY_SUITE_HOME/scripts/security-daily-scan.sh"
+chmod 700 "$AEGIS_HOME/scripts/security-daily-scan.sh"
 
 # Create log files with proper permissions
-touch "$SECURITY_SUITE_HOME/logs/daily/test.log"
-chmod 600 "$SECURITY_SUITE_HOME/logs/daily/test.log"
+touch "$AEGIS_HOME/logs/daily/test.log"
+chmod 600 "$AEGIS_HOME/logs/daily/test.log"
 
 echo "Setup completed"
 exit 0
@@ -379,7 +379,7 @@ EOF
 # Use environment variables securely
 log_info "User: ${USER:-unknown}"
 log_info "Home: ${HOME:-/tmp}"
-log_info "Security Suite Home: ${SECURITY_SUITE_HOME:-/tmp/security-suite}"
+log_info "Security Suite Home: ${AEGIS_HOME:-/tmp/aegis-security-suite}"
 
 # Don't log sensitive environment variables
 if [ -n "$PASSWORD" ]; then

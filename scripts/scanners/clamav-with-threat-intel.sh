@@ -2,7 +2,7 @@
 # ClamAV Scanner with Threat Intelligence Integration
 
 SCAN_PATH="${1:-$HOME}"
-IOC_DATABASE="$SECURITY_SUITE_HOME/configs/threat_intelligence/ioc_database.db"
+IOC_DATABASE="$AEGIS_HOME/configs/threat_intelligence/ioc_database.db"
 
 echo "Starting ClamAV scan with threat intelligence integration for: $SCAN_PATH"
 

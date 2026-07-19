@@ -297,7 +297,7 @@ execute_command() {
 # Resource monitoring
 check_disk_space() {
     local required_mb="$1"
-    local path="${2:-$SECURITY_SUITE_HOME}"
+    local path="${2:-$AEGIS_HOME}"
     
     local available_mb=$(df -m "$path" | awk 'NR==2 {print $4}')
     
@@ -449,7 +449,7 @@ monitor_resources_during_operation() {
     (
         while true; do
             local memory_usage=$(free -m | awk 'NR==2{print $3}')
-            local disk_usage=$(df -m "$SECURITY_SUITE_HOME" | awk 'NR==2 {print $3}')
+            local disk_usage=$(df -m "$AEGIS_HOME" | awk 'NR==2 {print $3}')
             
             echo "$(date '+%Y-%m-%d %H:%M:%S') MEMORY:$memory_usage DISK:$disk_usage" >> "$temp_monitor_file"
             

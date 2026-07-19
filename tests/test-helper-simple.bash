@@ -15,7 +15,7 @@ setup_test_environment() {
     mkdir -p "$TEST_CONFIG_DIR"
     mkdir -p "$TEST_DIR/scripts/scanners"
     
-    export SECURITY_SUITE_HOME="$TEST_DIR"
+    export AEGIS_HOME="$TEST_DIR"
     export LOGS_DIR="$TEST_LOGS_DIR"
     export CONFIGS_DIR="$TEST_CONFIG_DIR"
     export CURRENT_USER="testuser"

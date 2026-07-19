@@ -15,7 +15,7 @@ NC='\033[0m' # No Color
 
 # Test configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SECURITY_SUITE_HOME="${SECURITY_SUITE_HOME:-$(dirname "$(dirname "$(readlink -f "$0")")")}"
+AEGIS_HOME="${AEGIS_HOME:-$(dirname "$(dirname "$(readlink -f "$0")")")}"
 DASHBOARD_PORT="8080"
 VALIDATION_PASSED=0
 VALIDATION_FAILED=0
@@ -163,10 +163,10 @@ test_databases() {
     print_status "Testing database connectivity..."
     
     local databases=(
-        "$SECURITY_SUITE_HOME/configs/behavioral_analysis/behavioral_data.db"
-        "$SECURITY_SUITE_HOME/configs/incident_response/incidents.db"
-        "$SECURITY_SUITE_HOME/configs/threat_intelligence/ioc_database.db"
-        "$SECURITY_SUITE_HOME/configs/web-dashboard/auth.db"
+        "$AEGIS_HOME/configs/behavioral_analysis/behavioral_data.db"
+        "$AEGIS_HOME/configs/incident_response/incidents.db"
+        "$AEGIS_HOME/configs/threat_intelligence/ioc_database.db"
+        "$AEGIS_HOME/configs/web-dashboard/auth.db"
     )
     
     local db_passed=0
@@ -209,7 +209,7 @@ test_scripts() {
     local scripts_total=${#scripts[@]}
     
     for script in "${scripts[@]}"; do
-        local script_path="$SECURITY_SUITE_HOME/scripts/$script"
+        local script_path="$AEGIS_HOME/scripts/$script"
         
         if [ -f "$script_path" ]; then
             # Test script syntax
@@ -236,8 +236,8 @@ test_configuration() {
     print_status "Testing configuration files..."
     
     local config_files=(
-        "$SECURITY_SUITE_HOME/configs/security-config.conf"
-        "$SECURITY_SUITE_HOME/web-dashboard/config/dashboard.conf"
+        "$AEGIS_HOME/configs/security-config.conf"
+        "$AEGIS_HOME/web-dashboard/config/dashboard.conf"
     )
     
     local config_passed=0
@@ -269,7 +269,7 @@ test_logging() {
     print_status "Testing logging infrastructure..."
     
     local log_dirs=(
-        "$SECURITY_SUITE_HOME/logs"
+        "$AEGIS_HOME/logs"
         "/var/log/aegis-security-suite"
     )
     
@@ -346,7 +346,7 @@ test_security_features() {
 
 # Function to generate integration report
 generate_report() {
-    local report_file="$SECURITY_SUITE_HOME/test-results/integration-validation-$(date +%Y%m%d_%H%M%S).txt"
+    local report_file="$AEGIS_HOME/test-results/integration-validation-$(date +%Y%m%d_%H%M%S).txt"
     
     mkdir -p "$(dirname "$report_file")"
     
@@ -367,13 +367,13 @@ Dashboard Service: $(systemctl is-active --quiet aegis-dashboard 2>/dev/null && 
 Dashboard Port: $(netstat -tlnp 2>/dev/null | grep ":$DASHBOARD_PORT " && echo "Listening" || echo "Not Listening")
 Authentication: $(curl -s -w "%{http_code}" "http://localhost:$DASHBOARD_PORT/login" -X POST -d "username=admin&password=admin123" 2>/dev/null | grep -E "302|303" >/dev/null && echo "Working" || echo "Failed")
 API Endpoints: $(curl -s "http://localhost:$DASHBOARD_PORT/api/system/status" -w "%{http_code}" 2>/dev/null | grep -E "200|401" >/dev/null && echo "Working" || echo "Failed")
-Databases: $(sqlite3 "$SECURITY_SUITE_HOME/configs/web-dashboard/auth.db" "SELECT 1;" >/dev/null 2>&1 && echo "Accessible" || echo "Issues")
+Databases: $(sqlite3 "$AEGIS_HOME/configs/web-dashboard/auth.db" "SELECT 1;" >/dev/null 2>&1 && echo "Accessible" || echo "Issues")
 
 RECOMMENDATIONS:
 ----------------
 1. Ensure all services are running: systemctl start aegis-dashboard
 2. Check logs for issues: journalctl -u aegis-dashboard -f
-3. Verify configuration: cat $SECURITY_SUITE_HOME/configs/security-config.conf
+3. Verify configuration: cat $AEGIS_HOME/configs/security-config.conf
 4. Test dashboard manually: curl http://localhost:$DASHBOARD_PORT
 5. Monitor system resources: htop, iotop
 
@@ -394,8 +394,8 @@ run_validation() {
     print_header "Aegis Security Suite Integration Validation"
     
     # Check if security suite is installed
-    if [ ! -d "$SECURITY_SUITE_HOME" ]; then
-        print_error "Security suite not found at $SECURITY_SUITE_HOME"
+    if [ ! -d "$AEGIS_HOME" ]; then
+        print_error "Security suite not found at $AEGIS_HOME"
         exit 1
     fi
     
@@ -482,7 +482,7 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         -d|--dir)
-            SECURITY_SUITE_HOME="$2"
+            AEGIS_HOME="$2"
             shift 2
             ;;
         *)

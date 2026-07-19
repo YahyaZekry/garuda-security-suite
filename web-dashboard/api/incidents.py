@@ -22,7 +22,7 @@ from auth import require_auth, require_role
 incidents_bp = Blueprint('incidents', __name__, url_prefix='/api/incidents')
 
 # Database paths
-INCIDENT_DB_PATH = os.path.join(os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite'), 
+INCIDENT_DB_PATH = os.path.join(os.environ.get('AEGIS_HOME', '/opt/aegis-security-suite'), 
                                 'configs', 'incident_response', 'incidents.db')
 
 def ensure_incident_db():
@@ -49,10 +49,17 @@ def ensure_incident_db():
             evidence_path TEXT,
             false_positive BOOLEAN DEFAULT 0,
             rollback_available BOOLEAN DEFAULT 0,
-            rollback_data TEXT
+            rollback_data TEXT,
+            assigned_to TEXT
         )
         """)
-        
+
+        # Backward compatibility: add assigned_to to pre-existing DBs
+        try:
+            cursor.execute("ALTER TABLE incidents ADD COLUMN assigned_to TEXT")
+        except sqlite3.OperationalError:
+            pass  # Column already exists
+
         # Create incident_updates table
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS incident_updates (
@@ -88,7 +95,7 @@ def get_incidents(limit=50, status=None, severity=None, incident_type=None, offs
         cursor = conn.cursor()
         
         # Build query
-        query = "SELECT id, incident_id, incident_type, incident_details, severity, status, timestamp, resolved_timestamp, actions_taken FROM incidents WHERE 1=1"
+        query = "SELECT id, incident_id, incident_type, incident_details, severity, status, timestamp, resolved_timestamp, actions_taken, assigned_to FROM incidents WHERE 1=1"
         params = []
         
         if status:
@@ -104,7 +111,7 @@ def get_incidents(limit=50, status=None, severity=None, incident_type=None, offs
             params.append(incident_type)
         
         # Get total count
-        count_query = query.replace("SELECT id, incident_id, incident_type, incident_details, severity, status, timestamp, resolved_timestamp, actions_taken", "SELECT COUNT(*)")
+        count_query = query.replace("SELECT id, incident_id, incident_type, incident_details, severity, status, timestamp, resolved_timestamp, actions_taken, assigned_to", "SELECT COUNT(*)")
         cursor.execute(count_query, params)
         total = cursor.fetchone()[0]
         
@@ -129,7 +136,7 @@ def get_incidents(limit=50, status=None, severity=None, incident_type=None, offs
                 'created_at': row[6],
                 'updated_at': row[6],  # Use timestamp as updated_at
                 'resolved_at': row[7],
-                'assigned_to': None,  # Default value
+                'assigned_to': row[9],
                 'tags': []  # Default empty tags
             })
         
@@ -161,15 +168,15 @@ def get_incident_by_id(incident_id):
         # Get incident details
         cursor.execute("""
         SELECT id, incident_id, incident_type, incident_details, severity, status,
-               timestamp, resolved_timestamp, actions_taken, evidence_path
+               timestamp, resolved_timestamp, actions_taken, evidence_path, assigned_to
         FROM incidents WHERE incident_id = ?
         """, (incident_id,))
-        
+
         row = cursor.fetchone()
         if not row:
             conn.close()
             return None
-        
+
         incident = {
             'id': row[1],  # Use incident_id as the public ID
             'title': f"{row[2]} - {row[3][:50]}...",  # Combine type and details for title
@@ -181,7 +188,7 @@ def get_incident_by_id(incident_id):
             'created_at': row[6],
             'updated_at': row[6],  # Use timestamp as updated_at
             'resolved_at': row[7],
-            'assigned_to': None,  # Default value
+            'assigned_to': row[10],
             'tags': [],  # Default empty tags
             'evidence_files': [row[8]] if row[8] else []  # evidence_path as evidence_files
         }
@@ -283,8 +290,8 @@ def update_incident(incident_id, updates):
                     set_clauses.append(f"{field} = ?")
                     params.append(value)
             elif field == 'assigned_to':
-                # Skip assigned_to as it doesn't exist in the table
-                continue
+                set_clauses.append("assigned_to = ?")
+                params.append(value)
             elif field == 'tags':
                 # Skip tags as it doesn't exist in the table
                 continue
@@ -437,7 +444,7 @@ def get_incident_statistics():
 def trigger_incident_response(incident_id, incident_type, severity):
     """Trigger incident response script"""
     try:
-        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite')
+        security_home = os.environ.get('AEGIS_HOME', '/opt/aegis-security-suite')
         incident_script = os.path.join(security_home, 'scripts', 'incident-response.sh')
         
         if not os.path.exists(incident_script):
@@ -699,7 +706,7 @@ def collect_evidence(incident_id):
         if evidence_type not in valid_types:
             evidence_type = 'basic'
         
-        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite')
+        security_home = os.environ.get('AEGIS_HOME', '/opt/aegis-security-suite')
         incident_script = os.path.join(security_home, 'scripts', 'incident-response.sh')
         
         if not os.path.exists(incident_script):
@@ -834,16 +841,19 @@ def get_chart_data():
 @require_role('analyst')
 def assign_incident(incident_id):
     try:
+        if not ensure_incident_db():
+            return jsonify({'success': False, 'message': 'Failed to initialize incident database'}), 500
         data = request.get_json() or {}
         assignee = data.get('assignee', '')
         conn = sqlite3.connect(INCIDENT_DB_PATH)
         cursor = conn.cursor()
-        cursor.execute("UPDATE incidents SET status = 'investigating', actions_taken = ? WHERE incident_id = ?",
-                       (f'Assigned to {assignee}', incident_id))
+        cursor.execute("UPDATE incidents SET status = 'investigating', assigned_to = ? WHERE incident_id = ?",
+                       (assignee, incident_id))
         conn.commit()
         affected = cursor.rowcount
         conn.close()
         if affected > 0:
+            add_incident_update(incident_id, f'Assigned to {assignee}', 'assignment')
             return jsonify({'success': True, 'message': f'Incident {incident_id} assigned to {assignee}'})
         return jsonify({'success': False, 'message': 'Incident not found'}), 404
     except Exception as e:
@@ -855,14 +865,17 @@ def assign_incident(incident_id):
 @require_role('analyst')
 def bulk_assign():
     try:
+        if not ensure_incident_db():
+            return jsonify({'success': False, 'message': 'Failed to initialize incident database'}), 500
         data = request.get_json() or {}
-        incident_ids = data.get('incident_ids', [])
+        incident_ids = data.get('incident_ids', [])[:500]
         assignee = data.get('assignee', '')
         assigned = 0
         conn = sqlite3.connect(INCIDENT_DB_PATH)
         cursor = conn.cursor()
         for inc_id in incident_ids:
-            cursor.execute("UPDATE incidents SET status = 'investigating' WHERE incident_id = ?", (inc_id,))
+            cursor.execute("UPDATE incidents SET status = 'investigating', assigned_to = ? WHERE incident_id = ?",
+                           (assignee, inc_id))
             if cursor.rowcount > 0:
                 assigned += 1
         conn.commit()
@@ -878,7 +891,7 @@ def bulk_assign():
 def bulk_escalate():
     try:
         data = request.get_json() or {}
-        incident_ids = data.get('incident_ids', [])
+        incident_ids = data.get('incident_ids', [])[:500]
         escalated = 0
         conn = sqlite3.connect(INCIDENT_DB_PATH)
         cursor = conn.cursor()
@@ -936,7 +949,7 @@ def export_incidents_data():
 @require_role('analyst')
 def automate_response():
     try:
-        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite')
+        security_home = os.environ.get('AEGIS_HOME', '/opt/aegis-security-suite')
         script = os.path.join(security_home, 'scripts', 'incident-response.sh')
         if os.path.exists(script):
             subprocess.Popen(['sudo', script, '--auto-respond'])
@@ -946,15 +959,41 @@ def automate_response():
 
 
 @incidents_bp.route('/team-status')
+@require_auth
 def team_status():
+    """Team roster backed by registered dashboard users and their real
+    session activity (previously a hardcoded fictional roster)."""
     try:
-        members = [
-            {'id': '1', 'name': 'Alice Johnson', 'role': 'Lead Analyst', 'status': 'online'},
-            {'id': '2', 'name': 'Bob Smith', 'role': 'Security Analyst', 'status': 'busy'},
-            {'id': '3', 'name': 'Carol Davis', 'role': 'Threat Hunter', 'status': 'online'},
-            {'id': '4', 'name': 'David Wilson', 'role': 'Incident Responder', 'status': 'offline'},
-            {'id': '5', 'name': 'Eve Martinez', 'role': 'Forensic Analyst', 'status': 'online'}
-        ]
+        from auth import AUTH_DB_PATH
+        conn = sqlite3.connect(AUTH_DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("""
+        SELECT u.id, u.username, u.role, MAX(s.last_activity) as last_activity
+        FROM users u
+        LEFT JOIN user_sessions s ON s.user_id = u.id AND s.is_active = 1 AND s.expires_at > ?
+        WHERE u.is_active = 1
+        GROUP BY u.id
+        ORDER BY u.username
+        """, (datetime.now().isoformat(),))
+        rows = cursor.fetchall()
+        conn.close()
+
+        role_labels = {
+            'viewer': 'Viewer', 'analyst': 'Security Analyst',
+            'manager': 'Manager', 'admin': 'Administrator'
+        }
+        members = []
+        for user_id, username, role, last_activity in rows:
+            status = 'offline'
+            if last_activity:
+                idle_minutes = (datetime.now() - datetime.fromisoformat(last_activity)).total_seconds() / 60
+                status = 'online' if idle_minutes <= 5 else ('busy' if idle_minutes <= 30 else 'offline')
+            members.append({
+                'id': str(user_id),
+                'name': username,
+                'role': role_labels.get(role, role),
+                'status': status
+            })
         return jsonify({'team_members': members, 'team_status': members})
     except Exception as e:
         return jsonify({'error': str(e), 'team_members': []}), 500

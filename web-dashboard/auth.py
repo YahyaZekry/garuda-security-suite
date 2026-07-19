@@ -13,12 +13,10 @@ import uuid
 from datetime import datetime, timedelta
 from functools import wraps
 from flask import session, request, redirect, url_for, flash, g, current_app
-import bcrypt
-from security_utils import SecurityLogger, InputValidator, rate_limiter
+from security_utils import SecurityLogger, InputValidator, rate_limiter, hash_password, verify_password
 
 # Database path
-# Use current working directory since we're running from project source
-AUTH_DB_PATH = os.path.join(os.getcwd(), 'configs', 'web-dashboard', 'auth.db')
+AUTH_DB_PATH = os.path.join(os.environ.get('AEGIS_HOME', '/opt/aegis-security-suite'), 'configs', 'web-dashboard', 'auth.db')
 
 def ensure_auth_db():
     """Ensure authentication database exists and is properly initialized"""
@@ -163,7 +161,7 @@ def create_default_admin(cursor):
         
         # Save password to a secure file for recovery
         try:
-            password_file = os.path.join(os.getcwd(), 'configs', 'web-dashboard', 'admin_password.txt')
+            password_file = os.path.join(os.environ.get('AEGIS_HOME', '/opt/aegis-security-suite'), 'configs', 'web-dashboard', 'admin_password.txt')
             os.makedirs(os.path.dirname(password_file), exist_ok=True)
             with open(password_file, 'w') as f:
                 f.write(f"Admin Username: admin\n")
@@ -221,15 +219,6 @@ def generate_device_fingerprint(user_agent=None, ip_address=None):
         }, 'ERROR')
         # Return a random hash as fallback
         return secrets.token_hex(16)
-
-def hash_password(password, salt):
-    """Hash password with salt using PBKDF2"""
-    return hashlib.pbkdf2_hmac('sha256', password.encode(), salt.encode(), 200000).hex()
-
-def verify_password(password, stored_hash, salt):
-    """Verify password against stored hash"""
-    calculated_hash = hash_password(password, salt)
-    return secrets.compare_digest(calculated_hash, stored_hash)
 
 def authenticate_user(username, password, ip_address=None, user_agent=None, mfa_token=None):
     """Authenticate user credentials with enhanced security"""
@@ -836,38 +825,70 @@ def log_auth_event(user_id, action, ip_address, user_agent, success, details=Non
     except Exception as e:
         print(f"Auth logging error: {e}")
 
+def get_session_idle_timeout_minutes():
+    """Read the configurable idle-session timeout (Settings > Security >
+    Session Timeout), falling back to 30 minutes if unset/unreadable."""
+    try:
+        from api.config import load_config as load_dashboard_config
+        return int(load_dashboard_config().get('security', {}).get('session_timeout', 30))
+    except Exception:
+        return 30
+
 def require_auth(f):
-    """Authentication decorator for Flask routes"""
+    """Authentication decorator for Flask routes. Enforces an idle
+    timeout for sessions that weren't created with "Remember Me" —
+    "Remember Me" sessions rely solely on the cookie's own expiry."""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         # Check for session in Flask session
         session_id = session.get('session_id')
-        
+
         if not session_id:
             return redirect(url_for('login'))
-        
+
         # Validate session
         user_data = validate_session(session_id, request.remote_addr)
-        
+
         if not user_data:
             session.clear()
             return redirect(url_for('login'))
-        
+
+        # Enforce idle timeout for non-"remember me" sessions
+        if not session.get('remember_me'):
+            last_activity = session.get('last_activity')
+            if last_activity:
+                idle_minutes = (datetime.now() - datetime.fromisoformat(last_activity)).total_seconds() / 60
+                if idle_minutes > get_session_idle_timeout_minutes():
+                    destroy_session(session_id)
+                    session.clear()
+                    flash('Your session has expired due to inactivity. Please log in again.', 'info')
+                    return redirect(url_for('login'))
+        session['last_activity'] = datetime.now().isoformat()
+
         # Store user data in Flask g object
         g.current_user = user_data
-        
+
         return f(*args, **kwargs)
-    
+
     return decorated_function
 
 def require_role(required_role):
-    """Role-based access control decorator"""
+    """Role-based access control decorator. In single-user deployment mode
+    there's only one operator, so role-tier checks are skipped entirely -
+    any authenticated user has full access."""
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             if not hasattr(g, 'current_user'):
                 return redirect(url_for('login'))
-            
+
+            try:
+                from api.config import is_single_user_mode
+                if is_single_user_mode():
+                    return f(*args, **kwargs)
+            except Exception:
+                pass
+
             user_role = g.current_user.get('role', 'analyst')
             
             # Role hierarchy: admin > manager > analyst > viewer
@@ -885,29 +906,9 @@ def require_role(required_role):
         
         return decorated_function
     return decorator
-def login_required(f):
-    """Authentication decorator for Flask routes"""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        # Check for session in Flask session
-        session_id = session.get('session_id')
-        
-        if not session_id:
-            return redirect(url_for('login'))
-        
-        # Validate session
-        user_data = validate_session(session_id, request.remote_addr)
-        
-        if not user_data:
-            session.clear()
-            return redirect(url_for('login'))
-        
-        # Store user data in Flask g object
-        g.current_user = user_data
-        
-        return f(*args, **kwargs)
-    
-    return decorated_function
+# login_required was a byte-for-byte duplicate of require_auth; kept as
+# an alias since both names are used across the codebase.
+login_required = require_auth
 
 def get_user_permissions(user_role):
     """Get permissions for user role"""

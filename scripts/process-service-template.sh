@@ -28,7 +28,7 @@ process_service_template() {
     # Process template with variable substitution
     sed -e "s|\${CURRENT_USER}|$service_user|g" \
         -e "s|\${CURRENT_HOME}|$CURRENT_HOME|g" \
-        -e "s|\${SECURITY_SUITE_HOME}|$SECURITY_SUITE_HOME|g" \
+        -e "s|\${AEGIS_HOME}|$AEGIS_HOME|g" \
         -e "s|\${SCRIPTS_DIR}|$SCRIPTS_DIR|g" \
         -e "s|\${LOGS_DIR}|$LOGS_DIR|g" \
         -e "s|\${CONFIGS_DIR}|$CONFIGS_DIR|g" \
@@ -84,7 +84,7 @@ case "${1:-help}" in
         echo "Current User Environment:"
         echo "  CURRENT_USER: $CURRENT_USER"
         echo "  CURRENT_HOME: $CURRENT_HOME"
-        echo "  SECURITY_SUITE_HOME: $SECURITY_SUITE_HOME"
+        echo "  AEGIS_HOME: $AEGIS_HOME"
         echo "  SCRIPTS_DIR: $SCRIPTS_DIR"
         echo "  LOGS_DIR: $LOGS_DIR"
         echo "  CONFIGS_DIR: $CONFIGS_DIR"

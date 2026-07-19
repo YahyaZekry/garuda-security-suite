@@ -20,7 +20,7 @@ setup_test_environment() {
     cp -r "$PROJECT_ROOT/scripts"/* "$TEST_DIR/scripts/" 2>/dev/null || true
     cp -r "$PROJECT_ROOT/configs"/* "$TEST_CONFIG_DIR/" 2>/dev/null || true
     
-    export SECURITY_SUITE_HOME="$TEST_DIR"
+    export AEGIS_HOME="$TEST_DIR"
     export LOGS_DIR="$TEST_LOGS_DIR"
     export CONFIGS_DIR="$TEST_CONFIG_DIR"
     export CURRENT_USER="testuser"
@@ -472,7 +472,7 @@ setup_security_suite() {
     local args=("$@")
     
     # Create directory structure
-    mkdir -p "$SECURITY_SUITE_HOME"/{scripts,configs,logs/{daily,weekly,monthly,manual,error,audit},backups}
+    mkdir -p "$AEGIS_HOME"/{scripts,configs,logs/{daily,weekly,monthly,manual,error,audit},backups}
     
     echo "Setup completed successfully"
     return 0

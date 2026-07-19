@@ -26,9 +26,7 @@ security_logger.setLevel(logging.INFO)
 
 # Create file handler for security logs
 if not security_logger.handlers:
-    # Use current working directory since we're running from project source
-    log_dir = os.path.join(os.getcwd(), 'logs')
-    log_dir = os.path.join(log_dir, 'logs')
+    log_dir = os.path.join(os.environ.get('AEGIS_HOME', '/opt/aegis-security-suite'), 'logs')
     os.makedirs(log_dir, exist_ok=True)
     
     file_handler = logging.FileHandler(os.path.join(log_dir, 'security.log'))
@@ -188,22 +186,35 @@ class RateLimiter:
                     'retry_after': window
                 }
             else:
-                # Update existing record
+                # Atomic increment guarded by the count check in the WHERE
+                # clause, so a concurrent request that already pushed the
+                # count to the limit is not double-admitted (TOCTOU-safe).
                 cursor.execute("""
-                UPDATE rate_limits SET request_count = request_count + 1 
-                WHERE ip_address = ? AND endpoint = ? AND window_start = ?
-                """, (ip_address, endpoint, current_window_start))
+                UPDATE rate_limits SET request_count = request_count + 1
+                WHERE ip_address = ? AND endpoint = ? AND window_start = ? AND request_count < ?
+                """, (ip_address, endpoint, current_window_start, limit))
+                if cursor.rowcount == 0:
+                    conn.close()
+                    return False, {
+                        'error': 'Rate limit exceeded',
+                        'limit': limit,
+                        'window': window,
+                        'current_count': limit,
+                        'retry_after': window
+                    }
+                new_count = request_count + 1
         else:
             # Create new record
             cursor.execute("""
             INSERT INTO rate_limits (ip_address, endpoint, request_count, window_start, created_at)
             VALUES (?, ?, 1, ?, ?)
             """, (ip_address, endpoint, now.isoformat(), now.isoformat()))
-        
+            new_count = 1
+
         conn.commit()
         conn.close()
-        
-        return True, {'remaining': limit - (result[0] if result else 0)}
+
+        return True, {'remaining': limit - new_count}
 
 class APIKeyManager:
     """API key management for external integrations"""
@@ -564,9 +575,8 @@ class SecurityLogger:
         
         # Log to database if available
         try:
-            # Use current working directory since we're running from project source
-            auth_db_path = os.path.join(os.getcwd(), 'configs', 'web-dashboard', 'auth.db')
-            
+            auth_db_path = os.path.join(os.environ.get('AEGIS_HOME', '/opt/aegis-security-suite'), 'configs', 'web-dashboard', 'auth.db')
+
             if os.path.exists(auth_db_path):
                 conn = sqlite3.connect(auth_db_path)
                 cursor = conn.cursor()
@@ -590,9 +600,8 @@ class SecurityLogger:
             security_logger.error(f"Failed to log to database: {e}")
 
 # Initialize rate limiter and API key manager
-# Use current working directory since we're running from project source
-RATE_LIMIT_DB = os.path.join(os.getcwd(), 'configs', 'web-dashboard', 'rate_limits.db')
-API_KEY_DB = os.path.join(os.getcwd(), 'configs', 'web-dashboard', 'api_keys.db')
+RATE_LIMIT_DB = os.path.join(os.environ.get('AEGIS_HOME', '/opt/aegis-security-suite'), 'configs', 'web-dashboard', 'rate_limits.db')
+API_KEY_DB = os.path.join(os.environ.get('AEGIS_HOME', '/opt/aegis-security-suite'), 'configs', 'web-dashboard', 'api_keys.db')
 
 rate_limiter = RateLimiter(RATE_LIMIT_DB)
 api_key_manager = APIKeyManager(API_KEY_DB)
@@ -708,10 +717,10 @@ def secure_headers(f):
             response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
             response.headers['Content-Security-Policy'] = (
                 "default-src 'self'; "
-                "script-src 'self' 'unsafe-inline'; "
-                "style-src 'self' 'unsafe-inline'; "
+                "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdn.socket.io; "
+                "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
                 "img-src 'self' data: https:; "
-                "font-src 'self'; "
+                "font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; "
                 "connect-src 'self' ws: wss:; "
                 "frame-ancestors 'none'; "
                 "base-uri 'self'; "
@@ -759,18 +768,6 @@ def get_ip_geolocation(ip_address):
         return None
     except:
         return None
-
-def generate_csrf_token():
-    """Generate CSRF token for form protection"""
-    return secrets.token_urlsafe(32)
-
-def validate_csrf_token(token):
-    """Validate CSRF token"""
-    # In a real implementation, this would check against session-stored tokens
-    # For now, we'll just validate the format
-    if not token or len(token) < 20:
-        return False
-    return True
 
 def check_password_strength(password):
     """Check password strength against security policies"""
@@ -875,31 +872,17 @@ def generate_mfa_qr_code(secret, username):
         return None
 
 def hash_password(password, salt=None):
-    """Hash password with salt using bcrypt"""
-    if salt is None:
-        salt = bcrypt.gensalt().decode('utf-8')
-    
-    # Convert salt to bytes if it's a string
-    if isinstance(salt, str):
-        salt = salt.encode('utf-8')
-    
-    # Hash password
-    password_hash = bcrypt.hashpw(password.encode('utf-8'), salt)
-    
-    # Return as string
-    return password_hash.decode('utf-8')
+    """Hash a password with bcrypt. bcrypt embeds its own salt in the
+    returned hash, so the `salt` argument is accepted (for call-site
+    compatibility with the users.salt column) but not used to derive
+    the hash."""
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
-def verify_password(password, stored_hash, salt):
-    """Verify password against stored hash"""
+def verify_password(password, stored_hash, salt=None):
+    """Verify a password against a bcrypt hash. The salt embedded in
+    stored_hash is used automatically; the `salt` argument is accepted
+    for call-site compatibility but not used."""
     try:
-        # Convert salt to bytes if it's a string
-        if isinstance(salt, str):
-            salt = salt.encode('utf-8')
-        
-        # Hash the provided password with the same salt
-        password_hash = bcrypt.hashpw(password.encode('utf-8'), salt)
-        
-        # Compare with stored hash
-        return password_hash.decode('utf-8') == stored_hash
-    except:
+        return bcrypt.checkpw(password.encode('utf-8'), stored_hash.encode('utf-8'))
+    except Exception:
         return False

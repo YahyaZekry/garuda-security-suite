@@ -7,8 +7,9 @@ Wants=network.target
 [Service]
 Type=simple
 User=${CURRENT_USER}
-ExecStart=${SECURITY_SUITE_HOME}/scripts/behavioral-monitor-optimized.sh
-ExecReload=/bin/kill -HUP 
+WorkingDirectory=${AEGIS_HOME}/scripts
+ExecStart=${AEGIS_HOME}/scripts/behavioral-monitor-optimized.sh
+ExecReload=/bin/kill -HUP $MAINPID
 KillMode=mixed
 KillSignal=SIGTERM
 TimeoutStopSec=30
@@ -20,8 +21,8 @@ StartLimitInterval=300
 # Security settings
 NoNewPrivileges=true
 ProtectSystem=strict
-ProtectHome=true
-ReadWritePaths=${SECURITY_SUITE_HOME}/logs
+ProtectHome=read-only
+ReadWritePaths=${AEGIS_HOME}/logs
 PrivateTmp=true
 ProtectKernelTunables=true
 ProtectControlGroups=true
@@ -30,10 +31,10 @@ MemoryMax=256M
 CPUQuota=30%
 
 # Environment
-Environment=SECURITY_SUITE_HOME=${SECURITY_SUITE_HOME}
+Environment=AEGIS_HOME=${AEGIS_HOME}
 Environment=BEHAVIORAL_ANALYSIS_ENABLED=true
 Environment=BEHAVIORAL_MONITORING_INTERVAL=30
 Environment=BEHAVIORAL_THREAT_SCORE_THRESHOLD=70
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target

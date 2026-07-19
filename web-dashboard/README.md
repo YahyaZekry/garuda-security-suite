@@ -45,7 +45,7 @@ A comprehensive web-based interface for monitoring and managing the Aegis Securi
 
 1. **Navigate to the dashboard directory:**
    ```bash
-   cd \$SECURITY_SUITE_HOME/web-dashboard
+   cd \$AEGIS_HOME/web-dashboard
    ```
 
 2. **Make the startup script executable:**
@@ -70,7 +70,7 @@ A comprehensive web-based interface for monitoring and managing the Aegis Securi
 
 2. **Set up environment:**
    ```bash
-   export SECURITY_SUITE_HOME=\${SECURITY_SUITE_HOME:-$HOME/security-suite}
+   export AEGIS_HOME=\${AEGIS_HOME:-$HOME/aegis-security-suite}
    export FLASK_APP=app.py
    ```
 
@@ -203,9 +203,9 @@ The dashboard provides RESTful API endpoints for integration:
 
 ### Logs
 
-- **Application Log**: `$SECURITY_SUITE_HOME/logs/web-dashboard.log`
+- **Application Log**: `$AEGIS_HOME/logs/web-dashboard.log`
 - **Startup Log**: `/tmp/aegis-dashboard-startup.log`
-- **Security Suite Logs**: `$SECURITY_SUITE_HOME/logs/`
+- **Security Suite Logs**: `$AEGIS_HOME/logs/`
 
 ### Debug Mode
 

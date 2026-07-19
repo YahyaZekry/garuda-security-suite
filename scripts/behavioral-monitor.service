@@ -7,9 +7,9 @@ Wants=network.target
 [Service]
 Type=simple
 User=${CURRENT_USER}
-Environment=SECURITY_SUITE_HOME=${SECURITY_SUITE_HOME}
-WorkingDirectory=${SECURITY_SUITE_HOME}/scripts
-ExecStart=${SECURITY_SUITE_HOME}/scripts/behavioral-monitor.sh
+Environment=AEGIS_HOME=${AEGIS_HOME}
+WorkingDirectory=${AEGIS_HOME}/scripts
+ExecStart=${AEGIS_HOME}/scripts/behavioral-monitor.sh
 ExecReload=/bin/kill -HUP $MAINPID
 KillMode=mixed
 TimeoutStopSec=10
@@ -19,11 +19,11 @@ RestartSec=30
 # Security settings
 NoNewPrivileges=true
 ProtectSystem=strict
-ProtectHome=true
-ReadWritePaths=${SECURITY_SUITE_HOME}/configs
-ReadWritePaths=${SECURITY_SUITE_HOME}/logs
-ReadWritePaths=${SECURITY_SUITE_HOME}/evidence
-ReadWritePaths=${SECURITY_SUITE_HOME}/quarantine
+ProtectHome=read-only
+ReadWritePaths=${AEGIS_HOME}/configs
+ReadWritePaths=${AEGIS_HOME}/logs
+ReadWritePaths=${AEGIS_HOME}/evidence
+ReadWritePaths=${AEGIS_HOME}/quarantine
 ReadWritePaths=/tmp
 
 # Logging
@@ -32,4 +32,4 @@ StandardError=journal
 SyslogIdentifier=aegis-behavioral-monitor
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target

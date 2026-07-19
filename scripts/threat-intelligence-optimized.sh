@@ -6,15 +6,15 @@ source "$(dirname "$0")/common-functions.sh"
 
 # Get security suite home directory
 SCRIPT_DIR="$(dirname "$0")"
-SECURITY_SUITE_HOME="$(dirname "$SCRIPT_DIR")"
+AEGIS_HOME="$(dirname "$SCRIPT_DIR")"
 
 # Load configuration to get database paths
-if [ -f "$SECURITY_SUITE_HOME/configs/security-config.conf" ]; then
-    source "$SECURITY_SUITE_HOME/configs/security-config.conf"
+if [ -f "$AEGIS_HOME/configs/security-config.conf" ]; then
+    source "$AEGIS_HOME/configs/security-config.conf"
 fi
 
 # Ensure variables are set with fallbacks
-THREAT_DB_DIR="${THREAT_DB_DIR:-$SECURITY_SUITE_HOME/configs/threat_intelligence}"
+THREAT_DB_DIR="${THREAT_DB_DIR:-$AEGIS_HOME/configs/threat_intelligence}"
 IOC_DATABASE="${IOC_DATABASE:-$THREAT_DB_DIR/ioc_database.db}"
 FEED_CACHE_DIR="${FEED_CACHE_DIR:-$THREAT_DB_DIR/cache}"
 

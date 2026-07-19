@@ -139,6 +139,17 @@
                                 <form class="config-form">
                                     <div class="row">
                                         <div class="col-md-6 mb-3">
+                                            <label class="form-label">Deployment Mode</label>
+                                            <select class="form-select" id="deployment-mode">
+                                                <option value="single_user">Single User (Home)</option>
+                                                <option value="team">Team / Whole System</option>
+                                            </select>
+                                            <div class="form-text">Single User hides team-coordination features (incident assignment, escalation, team status) and RBAC role tiers, since only one operator uses the dashboard.</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
                                             <label class="form-label">System Name</label>
                                             <input type="text" class="form-control" id="system-name" value="Aegis Security Suite">
                                         </div>
@@ -853,6 +864,8 @@ function updateConfigMetrics(data) {
 }
 
 function populateConfigForms(data) {
+    document.getElementById('deployment-mode').value = data.deployment_mode || 'single_user';
+
     // Populate general configuration
     if (data.general) {
         document.getElementById('system-name').value = data.general.system_name || 'Aegis Security Suite';
@@ -964,6 +977,7 @@ function updateConfigHistory() {
 
 function saveAllConfig() {
     const configData = {
+        deployment_mode: document.getElementById('deployment-mode').value,
         general: {
             system_name: document.getElementById('system-name').value,
             environment: document.getElementById('environment').value,

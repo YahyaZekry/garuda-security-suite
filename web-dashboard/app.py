@@ -14,12 +14,20 @@ import sqlite3
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, jsonify, g, session, redirect, url_for, flash
 from flask_socketio import SocketIO, emit
-from flask_wtf.csrf import CSRFProtect
+from flask_wtf.csrf import CSRFProtect, CSRFError, generate_csrf as generate_csrf_token
 import secrets
 
+# Back-compat: an existing install from before the AEGIS_HOME rename
+# (2026-07-18) may still have SECURITY_SUITE_HOME set (e.g. baked into an
+# already-installed systemd unit's Environment= line). Set AEGIS_HOME from
+# it here, before any of the API blueprint modules below read AEGIS_HOME as
+# a module-level constant at import time.
+if 'AEGIS_HOME' not in os.environ and 'SECURITY_SUITE_HOME' in os.environ:
+    os.environ['AEGIS_HOME'] = os.environ['SECURITY_SUITE_HOME']
+
 # Import security utilities and authentication
-from security_utils import SecurityLogger, InputValidator, generate_csrf_token, validate_csrf_token, check_password_strength, hash_password, verify_password
-from auth import require_auth, login_required, authenticate_user, create_user_session, destroy_session, require_role
+from security_utils import SecurityLogger, InputValidator, check_password_strength, hash_password, verify_password
+from auth import require_auth, login_required, authenticate_user, create_user_session, destroy_session, require_role, AUTH_DB_PATH
 
 # Import API modules
 from api.system import system_bp
@@ -27,21 +35,56 @@ from api.behavioral import behavioral_bp
 from api.threats import threats_bp
 from api.incidents import incidents_bp
 from api.api_keys import api_keys_bp
-from api.config import config_bp
+from api.config import config_bp, is_single_user_mode
 from api.scan import scan_bp
 from api.security_monitoring import security_monitoring_bp, start_background_monitoring, stop_background_monitoring
 
+def load_or_create_secret_key():
+    """Load a persisted Flask secret key, generating one on first run.
+    Regenerating this on every process start (the old behavior) invalidates
+    all sessions/CSRF tokens on every restart, and gives each gunicorn
+    worker a different key, breaking sessions depending on which worker
+    handles a request."""
+    key_dir = os.path.join(os.environ.get('AEGIS_HOME', '/opt/aegis-security-suite'),
+                            'configs', 'web-dashboard')
+    key_file = os.path.join(key_dir, '.flask_secret_key')
+    os.makedirs(key_dir, exist_ok=True)
+    if os.path.exists(key_file):
+        with open(key_file, 'rb') as f:
+            return f.read()
+    key = os.urandom(64)
+    with open(key_file, 'wb') as f:
+        f.write(key)
+    os.chmod(key_file, 0o600)
+    return key
+
 # Create Flask app with optimizations
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.urandom(64)  # Increased key size
+app.config['SECRET_KEY'] = load_or_create_secret_key()
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0  # Disable caching for dynamic content
 app.config['WTF_CSRF_TIME_LIMIT'] = 3600  # CSRF token valid for 1 hour
 app.config['WTF_CSRF_SSL_STRICT'] = True  # Enforce SSL for CSRF
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)  # Default session lifetime
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)  # Cookie's outer expiry cap; the
+# shorter, configurable idle timeout for non-"remember me" sessions is enforced
+# server-side in auth.require_auth(), not by mutating this global setting per-request.
 
 # Initialize CSRF protection
 csrf = CSRFProtect(app)
+
+@app.errorhandler(CSRFError)
+def handle_csrf_error(e):
+    """Central handler for Flask-WTF CSRF failures (expired/missing/invalid
+    token) across both HTML form posts and JSON API calls."""
+    SecurityLogger.log_security_event('csrf_validation_failed', {
+        'ip_address': request.remote_addr,
+        'endpoint': request.endpoint,
+        'reason': e.description
+    }, 'WARNING')
+    if request.accept_mimetypes.accept_json and not request.accept_mimetypes.accept_html:
+        return jsonify({'error': 'Invalid or missing CSRF token'}), 400
+    flash('Your session expired or the request was invalid. Please try again.', 'error')
+    return redirect(url_for('login'))
 
 # Configure SocketIO with memory limits and CORS
 socketio = SocketIO(app,
@@ -64,7 +107,7 @@ def load_config():
     }
     
     try:
-        config_file = os.path.join(os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite'),
+        config_file = os.path.join(os.environ.get('AEGIS_HOME', '/opt/aegis-security-suite'),
                                   'web-dashboard', 'config', 'dashboard.conf')
         if os.path.exists(config_file):
             import configparser
@@ -105,10 +148,12 @@ active_connections = 0
 connection_lock = threading.Lock()
 
 # Database paths
-BEHAVIORAL_DB = os.path.join(os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite'),
+BEHAVIORAL_DB = os.path.join(os.environ.get('AEGIS_HOME', '/opt/aegis-security-suite'),
                               'configs', 'behavioral_analysis', 'behavioral_data.db')
-AUTH_DB_PATH = os.path.join(os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite'),
-                           'configs', 'web-dashboard', 'auth.db')
+# AUTH_DB_PATH is imported from auth.py (single source of truth) - this used
+# to be redefined here pointing at AEGIS_HOME while auth.py resolves
+# it relative to os.getcwd(), so /reset-password silently queried an empty/
+# nonexistent database ("no such table: users") whenever the two diverged.
 
 def get_memory_usage():
     """Get current memory usage percentage"""
@@ -258,10 +303,10 @@ def after_request(response):
     response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
     response.headers['Content-Security-Policy'] = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
-        "style-src 'self' 'unsafe-inline'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdn.socket.io; "
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
         "img-src 'self' data: https:; "
-        "font-src 'self'; "
+        "font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; "
         "connect-src 'self' ws: wss:; "
         "frame-ancestors 'none'; "
         "base-uri 'self'; "
@@ -326,7 +371,8 @@ def inject_globals():
     """Inject global variables into all templates"""
     return {
         'generate_csrf_token': generate_csrf_token,
-        'now': datetime
+        'now': datetime,
+        'is_single_user_mode': is_single_user_mode
     }
 
 # Routes
@@ -337,17 +383,10 @@ def login():
         # Generate CSRF token for login form
         csrf_token = generate_csrf_token()
         return render_template('login.html', csrf_token=csrf_token)
-    
-    # Validate CSRF token
-    csrf_token = request.form.get('csrf_token')
-    if not validate_csrf_token(csrf_token):
-        SecurityLogger.log_security_event('csrf_validation_failed', {
-            'ip_address': request.remote_addr,
-            'endpoint': 'login',
-            'user_agent': request.headers.get('User-Agent')
-        }, 'WARNING')
-        return render_template('login.html', error='Invalid request token')
-    
+
+    # CSRF token is validated automatically by Flask-WTF's global
+    # CSRFProtect before this view runs (see handle_csrf_error above).
+
     # Handle POST login
     username = InputValidator.sanitize_string(request.form.get('username', ''), 50)
     password = request.form.get('password', '')
@@ -379,21 +418,21 @@ def login():
         )
         
         if session_id:
+            # Clear any pre-auth session state before writing the authenticated
+            # session (mitigates session fixation; Flask has no session.regenerate()
+            # -- the underlying signed cookie is re-issued automatically whenever
+            # the session dict content changes).
+            session.clear()
             session['session_id'] = session_id
             session['username'] = auth_result['username']
             session['role'] = auth_result['role']
+            session['last_activity'] = datetime.now().isoformat()
+            # "Remember Me" sessions rely on the cookie's own (30-day) expiry;
+            # sessions without it are additionally subject to the configurable
+            # idle timeout enforced in auth.require_auth().
+            session['remember_me'] = request.form.get('remember') == '1'
+            session.permanent = True
 
-            # Handle "Remember Me" - extend session lifetime
-            if request.form.get('remember') == '1':
-                session.permanent = True
-                app.permanent_session_lifetime = timedelta(days=30)
-            else:
-                session.permanent = True
-                app.permanent_session_lifetime = timedelta(hours=24)
-
-            # Regenerate session ID to prevent session fixation
-            session.regenerate()
-            
             SecurityLogger.log_security_event('user_logged_in', {
                 'user_id': auth_result['user_id'],
                 'username': auth_result['username'],
@@ -419,26 +458,32 @@ def login():
                                csrf_token=generate_csrf_token())
 
 @app.route('/reset-password', methods=['GET', 'POST'])
-@login_required
 def reset_password():
-    """Reset password for users who need to change it"""
-    if not session.get('password_reset_required') and not session.get('session_id'):
+    """Reset password for users who need to change it. Reachable two ways:
+    (1) forced reset right after login, before a full session exists yet
+    (session['password_reset_required'] + temp_user_id), or (2) a fully
+    logged-in user voluntarily changing their password. @login_required
+    can't be used here since it would block case (1) before this view
+    ever runs."""
+    if session.get('password_reset_required') and session.get('temp_user_id'):
+        pass  # forced reset flow, no full session required yet
+    elif session.get('session_id'):
+        from auth import validate_session
+        user_data = validate_session(session['session_id'], request.remote_addr)
+        if not user_data:
+            session.clear()
+            return redirect(url_for('login'))
+        g.current_user = user_data
+    else:
         return redirect(url_for('login'))
-    
+
     if request.method == 'GET':
         csrf_token = generate_csrf_token()
         return render_template('reset_password.html', csrf_token=csrf_token)
-    
-    # Validate CSRF token
-    csrf_token = request.form.get('csrf_token')
-    if not validate_csrf_token(csrf_token):
-        SecurityLogger.log_security_event('csrf_validation_failed', {
-            'ip_address': request.remote_addr,
-            'endpoint': 'reset_password',
-            'user_agent': request.headers.get('User-Agent')
-        }, 'WARNING')
-        return render_template('reset_password.html', error='Invalid request token')
-    
+
+    # CSRF token is validated automatically by Flask-WTF's global
+    # CSRFProtect before this view runs (see handle_csrf_error above).
+
     # Get and validate new password
     current_password = request.form.get('current_password', '')
     new_password = request.form.get('new_password', '')
@@ -466,15 +511,15 @@ def reset_password():
         cursor = conn.cursor()
         
         # Get current password hash
-        cursor.execute("SELECT password_hash, salt FROM users WHERE id = ?", (user_id,))
+        cursor.execute("SELECT password_hash, salt, username, role FROM users WHERE id = ?", (user_id,))
         user_data = cursor.fetchone()
-        
+
         if not user_data:
             return render_template('reset_password.html',
                                error='User not found',
                                csrf_token=generate_csrf_token())
-        
-        stored_hash, salt = user_data
+
+        stored_hash, salt, username, role = user_data
         
         # Verify current password
         if not verify_password(current_password, stored_hash, salt):
@@ -507,7 +552,20 @@ def reset_password():
         # Clear temporary session data
         session.pop('temp_user_id', None)
         session.pop('password_reset_required', None)
-        
+
+        # Forced-reset flow: no full session exists yet, so create one now
+        # rather than bouncing the user back to the login page again.
+        if not session.get('session_id'):
+            new_session_id = create_user_session(
+                user_id, username, role, request.remote_addr, request.headers.get('User-Agent'))
+            if new_session_id:
+                session['session_id'] = new_session_id
+                session['username'] = username
+                session['role'] = role
+                session['last_activity'] = datetime.now().isoformat()
+                session['remember_me'] = False
+                session.permanent = True
+
         flash('Password changed successfully', 'success')
         return redirect(url_for('dashboard'))
         
@@ -823,19 +881,14 @@ def handle_connect():
             }, 'WARNING')
             return False
         
-        # Authenticate WebSocket connection
+        # Authenticate WebSocket connection - every client must have a
+        # valid authenticated Flask session, regardless of source address.
         session_id = session.get('session_id')
         if not session_id:
-            # Allow test connections for development
-            if request.remote_addr in ['127.0.0.1', '::1']:
-                SecurityLogger.log_security_event('test_connection', {
-                    'remote_addr': request.remote_addr
-                }, 'INFO')
-            else:
-                SecurityLogger.log_security_event('unauthorized_connection', {
-                    'remote_addr': request.remote_addr
-                }, 'WARNING')
-                return False
+            SecurityLogger.log_security_event('unauthorized_connection', {
+                'remote_addr': request.remote_addr
+            }, 'WARNING')
+            return False
         
         emit('status', {'message': 'Connected to Aegis Security Suite'})
         SecurityLogger.log_security_event('client_connected', {

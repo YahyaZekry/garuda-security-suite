@@ -20,10 +20,10 @@ PID_FILE="/tmp/aegis-dashboard.pid"
 LOG_FILE="/tmp/aegis-dashboard-startup.log"
 
 # Security suite home - detect from script location if not set
-if [ -z "${SECURITY_SUITE_HOME:-}" ]; then
+if [ -z "${AEGIS_HOME:-}" ]; then
     # Derive from script location
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    SECURITY_SUITE_HOME="$(dirname "$SCRIPT_DIR")"
+    AEGIS_HOME="$(dirname "$SCRIPT_DIR")"
 fi
 
 # Function to print colored output
@@ -111,13 +111,13 @@ check_dependencies() {
 check_security_suite() {
     print_status "Checking Aegis Security Suite installation..."
     
-    if [[ ! -d "$SECURITY_SUITE_HOME" ]]; then
-        print_error "Aegis Security Suite not found at $SECURITY_SUITE_HOME"
-        print_status "Please install the security suite first or set SECURITY_SUITE_HOME environment variable"
+    if [[ ! -d "$AEGIS_HOME" ]]; then
+        print_error "Aegis Security Suite not found at $AEGIS_HOME"
+        print_status "Please install the security suite first or set AEGIS_HOME environment variable"
         exit 1
     fi
     
-    if [[ ! -f "$SECURITY_SUITE_HOME/configs/security-config.conf" ]]; then
+    if [[ ! -f "$AEGIS_HOME/configs/security-config.conf" ]]; then
         print_warning "Security configuration not found. Some features may not work properly."
     fi
     
@@ -131,15 +131,15 @@ check_security_suite() {
     )
     
     for dir in "${required_dirs[@]}"; do
-        if [[ ! -d "$SECURITY_SUITE_HOME/$dir" ]]; then
+        if [[ ! -d "$AEGIS_HOME/$dir" ]]; then
             print_status "Creating missing directory: $dir"
-            mkdir -p "$SECURITY_SUITE_HOME/$dir"
+            mkdir -p "$AEGIS_HOME/$dir"
         fi
     done
     
     # Check for web dashboard specific requirements
-    if [[ ! -f "$SECURITY_SUITE_HOME/web-dashboard/app.py" ]]; then
-        print_error "Web dashboard application not found at $SECURITY_SUITE_HOME/web-dashboard/app.py"
+    if [[ ! -f "$AEGIS_HOME/web-dashboard/app.py" ]]; then
+        print_error "Web dashboard application not found at $AEGIS_HOME/web-dashboard/app.py"
         exit 1
     fi
     
@@ -151,16 +151,16 @@ setup_environment() {
     print_status "Setting up environment..."
     
     # Set environment variables
-    export SECURITY_SUITE_HOME="$SECURITY_SUITE_HOME"
+    export AEGIS_HOME="$AEGIS_HOME"
     export FLASK_APP="$SCRIPT_DIR/app.py"
     export FLASK_ENV="production"
     export DASHBOARD_CONFIG="$SCRIPT_DIR/config/dashboard.conf"
     
     # Create logs directory if it doesn't exist
-    mkdir -p "$SECURITY_SUITE_HOME/logs"
+    mkdir -p "$AEGIS_HOME/logs"
     
     # Create database directory if it doesn't exist
-    mkdir -p "$SECURITY_SUITE_HOME/configs/web-dashboard"
+    mkdir -p "$AEGIS_HOME/configs/web-dashboard"
     
     print_success "Environment setup completed"
 }
@@ -204,7 +204,7 @@ start_dashboard() {
     fi
     
     # Start the dashboard in background
-    nohup python3 app.py > "$SECURITY_SUITE_HOME/logs/web-dashboard.log" 2>&1 &
+    nohup python3 app.py > "$AEGIS_HOME/logs/web-dashboard.log" 2>&1 &
     local pid=$!
     
     # Save PID
@@ -215,11 +215,11 @@ start_dashboard() {
     if ps -p "$pid" > /dev/null 2>&1; then
         print_success "$DASHBOARD_NAME started successfully with PID $pid"
         print_status "Dashboard is available at: http://localhost:$DASHBOARD_PORT"
-        print_status "Log file: $SECURITY_SUITE_HOME/logs/web-dashboard.log"
+        print_status "Log file: $AEGIS_HOME/logs/web-dashboard.log"
         print_status "PID file: $PID_FILE"
     else
         print_error "Failed to start $DASHBOARD_NAME"
-        print_status "Check the log file for details: $SECURITY_SUITE_HOME/logs/web-dashboard.log"
+        print_status "Check the log file for details: $AEGIS_HOME/logs/web-dashboard.log"
         rm -f "$PID_FILE"
         exit 1
     fi
@@ -288,13 +288,13 @@ show_help() {
     echo "  help      Show this help message"
     echo ""
     echo "Environment Variables:"
-    echo "  SECURITY_SUITE_HOME    Path to security suite installation (default: \$HOME/security-suite)"
+    echo "  AEGIS_HOME    Path to security suite installation (default: \$HOME/aegis-security-suite)"
     echo "  DASHBOARD_PORT        Dashboard port (default: 8080)"
     echo ""
     echo "Examples:"
     echo "  $0 start              # Start dashboard"
     echo "  $0 stop               # Stop dashboard"
-    echo "  SECURITY_SUITE_HOME=/opt/security $0 start  # Start with custom path"
+    echo "  AEGIS_HOME=/opt/security $0 start  # Start with custom path"
 }
 
 # Main script logic

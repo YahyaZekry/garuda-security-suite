@@ -59,7 +59,7 @@ init_logging() {
     mkdir -p "$(dirname "$LOG_FILE")" "$(dirname "$ERROR_LOG_FILE")" "$(dirname "$AUDIT_LOG_FILE")"
     
     # Initialize log files
-    echo "Security Suite Log - $(date)" > "$LOG_FILE"
+    echo "Aegis Security Suite Log - $(date)" > "$LOG_FILE"
     echo "=============================" >> "$LOG_FILE"
     echo "Log Type: $log_type" >> "$LOG_FILE"
     echo "User: $(whoami)" >> "$LOG_FILE"
@@ -125,7 +125,7 @@ handle_critical_error() {
     
     # Send critical error notification
     if command -v notify-send &>/dev/null && [ "$NOTIFICATIONS_ENABLED" = true ]; then
-        notify-send -u critical -i "security-error" "🚨 Critical Security Suite Error" "$error_message" 2>/dev/null
+        notify-send -u critical -i "security-error" "🚨 Critical Aegis Error" "$error_message" 2>/dev/null
     fi
     
     # Attempt cleanup
@@ -297,7 +297,7 @@ execute_command() {
 # Resource monitoring
 check_disk_space() {
     local required_mb="$1"
-    local path="${2:-$SECURITY_SUITE_HOME}"
+    local path="${2:-$AEGIS_HOME}"
     
     local available_mb=$(df -m "$path" | awk 'NR==2 {print $4}')
     
@@ -449,7 +449,7 @@ monitor_resources_during_operation() {
     (
         while true; do
             local memory_usage=$(free -m | awk 'NR==2{print $3}')
-            local disk_usage=$(df -m "$SECURITY_SUITE_HOME" | awk 'NR==2 {print $3}')
+            local disk_usage=$(df -m "$AEGIS_HOME" | awk 'NR==2 {print $3}')
             
             echo "$(date '+%Y-%m-%d %H:%M:%S') MEMORY:$memory_usage DISK:$disk_usage" >> "$temp_monitor_file"
             
@@ -512,61 +512,78 @@ detect_user_home() {
     getent passwd "$username" | cut -d: -f6
 }
 
-detect_security_suite_home() {
+detect_aegis_home() {
     local username="$1"
     local user_home="$2"
-    
+
     # If no username provided, detect current user
     if [ -z "$username" ]; then
         username=$(detect_current_user)
     fi
-    
+
     # If no home provided, detect it
     if [ -z "$user_home" ]; then
         user_home=$(detect_user_home "$username")
     fi
-    
-    # Check if SECURITY_SUITE_HOME is already set
+
+    # Check if AEGIS_HOME is already set
+    if [ -n "$AEGIS_HOME" ]; then
+        echo "$AEGIS_HOME"
+        return 0
+    fi
+
+    # Back-compat: an existing install from before the AEGIS_HOME rename
+    # (2026-07-18) set SECURITY_SUITE_HOME - e.g. baked into an already
+    # installed systemd unit's Environment= line. Honor it so upgrading
+    # doesn't silently create a second, separate install directory.
     if [ -n "$SECURITY_SUITE_HOME" ]; then
         echo "$SECURITY_SUITE_HOME"
         return 0
     fi
-    
-    # Check common installation locations
+
+    # Check common *installed* locations - this only re-detects an existing
+    # install, it never selects an install target. The git checkout itself
+    # (repo root) is deliberately NOT a candidate here: setup-aegis.sh copies
+    # files OUT of the repo into one of these directories (see
+    # docs/INSTALLATION.md), so runtime state (secrets, databases, logs)
+    # never lives inside a git-tracked directory. An earlier version of this
+    # function used dirname(dirname($0)) as a fallback, which for root-level
+    # callers like setup-aegis.sh resolved to the repo's PARENT directory and
+    # caused the installer to recursively chmod every sibling project under it.
     local possible_paths=(
+        "$user_home/aegis-security-suite"
         "$user_home/security-suite"
         "/opt/aegis-security-suite"
         "/usr/local/aegis-security-suite"
-        "$(dirname "$(dirname "$(readlink -f "$0")")")"  # Script directory parent
     )
-    
+
     for path in "${possible_paths[@]}"; do
-        if [ -d "$path" ]; then
+        if [ -f "$path/scripts/common-functions.sh" ] || [ -f "$path/setup-aegis.sh" ]; then
             echo "$path"
             return 0
         fi
     done
-    
+
     # Default to user home if nothing found
-    echo "$user_home/security-suite"
+    echo "$user_home/aegis-security-suite"
 }
 
 setup_user_environment() {
     # Detect and set user-related environment variables
     export CURRENT_USER=$(detect_current_user)
     export CURRENT_HOME=$(detect_user_home "$CURRENT_USER")
-    export SECURITY_SUITE_HOME=$(detect_security_suite_home "$CURRENT_USER" "$CURRENT_HOME")
+    export AEGIS_HOME=$(detect_aegis_home "$CURRENT_USER" "$CURRENT_HOME")
     
     # Export for subprocesses
-    export SCRIPTS_DIR="$SECURITY_SUITE_HOME/scripts"
-    export LOGS_DIR="$SECURITY_SUITE_HOME/logs"
-    export CONFIGS_DIR="$SECURITY_SUITE_HOME/configs"
-    export BACKUPS_DIR="$SECURITY_SUITE_HOME/backups"
+    export SCRIPTS_DIR="$AEGIS_HOME/scripts"
+    export LOGS_DIR="$AEGIS_HOME/logs"
+    export CONFIGS_DIR="$AEGIS_HOME/configs"
+    export BACKUPS_DIR="$AEGIS_HOME/backups"
     
     log_debug "User environment setup complete:"
     log_debug "  CURRENT_USER: $CURRENT_USER"
     log_debug "  CURRENT_HOME: $CURRENT_HOME"
-    log_debug "  SECURITY_SUITE_HOME: $SECURITY_SUITE_HOME"
+    log_debug "  AEGIS_HOME: $AEGIS_HOME"
 }
 
 create_user_agnostic_service() {
@@ -582,8 +599,8 @@ create_user_agnostic_service() {
     # Create user-agnostic service file
     sed -e "s|User=frieso|User=$service_user|g" \
         -e "s|/home/frieso|$CURRENT_HOME|g" \
-        -e "s|/opt/aegis-security-suite|$SECURITY_SUITE_HOME|g" \
-        -e "s|/mnt/AirFryer/Projects/Linux/aegis-security-suite|$SECURITY_SUITE_HOME|g" \
+        -e "s|/opt/aegis-security-suite|$AEGIS_HOME|g" \
+        -e "s|/mnt/AirFryer/Projects/Linux/aegis-security-suite|$AEGIS_HOME|g" \
         "$template_file" > "$output_file"
     
     log_success "Created user-agnostic service: $output_file"
@@ -595,5 +612,5 @@ export -f validate_input validate_path validate_time validate_email validate_pat
 export -f execute_command check_disk_space check_memory_usage
 export -f send_notification download_with_retry run_scanner_with_fallback
 export -f retry_with_backoff monitor_resources_during_operation
-export -f detect_current_user detect_user_home detect_security_suite_home
+export -f detect_current_user detect_user_home detect_aegis_home
 export -f setup_user_environment create_user_agnostic_service

@@ -78,7 +78,7 @@ test_complete_security_scan() {
             log_pass "Security scan completed successfully"
             
             # Check for scan results
-            local scan_log=$(find "$SECURITY_SUITE_HOME/logs" -name "*daily_scan*" -type f 2>/dev/null | head -n1)
+            local scan_log=$(find "$AEGIS_HOME/logs" -name "*daily_scan*" -type f 2>/dev/null | head -n1)
             if [ -f "$scan_log" ]; then
                 log_pass "Scan log file created: $(basename "$scan_log")"
                 
@@ -226,7 +226,7 @@ EOF
             log_pass "Threat feed processed successfully"
             
             # Check if IOCs were added to database
-            local db_file="$SECURITY_SUITE_HOME/configs/threat_intelligence/ioc_database.db"
+            local db_file="$AEGIS_HOME/configs/threat_intelligence/ioc_database.db"
             if [ -f "$db_file" ] && command -v sqlite3 &> /dev/null; then
                 local ioc_count=$(sqlite3 "$db_file" "SELECT COUNT(*) FROM indicators WHERE source = 'test_feed';" 2>/dev/null || echo "0")
                 if [ "$ioc_count" -gt 0 ]; then
@@ -303,7 +303,7 @@ test_incident_response_workflow() {
                 log_pass "System state evidence collected"
                 
                 # Check evidence file
-                local evidence_file=$(find "$SECURITY_SUITE_HOME/evidence" -name "${incident_id}_system_state_*" 2>/dev/null | head -n1)
+                local evidence_file=$(find "$AEGIS_HOME/evidence" -name "${incident_id}_system_state_*" 2>/dev/null | head -n1)
                 if [ -f "$evidence_file" ]; then
                     log_pass "Evidence file created: $(basename "$evidence_file")"
                 else
@@ -467,7 +467,7 @@ test_notification_workflow() {
             done
             
             # Test notification queue
-            local db_file="$SECURITY_SUITE_HOME/configs/incident_response/incidents.db"
+            local db_file="$AEGIS_HOME/configs/incident_response/incidents.db"
             if [ -f "$db_file" ] && command -v sqlite3 &> /dev/null; then
                 local notification_count=$(sqlite3 "$db_file" "SELECT COUNT(*) FROM notifications WHERE incident_id = '$incident_id';" 2>/dev/null || echo "0")
                 if [ "$notification_count" -gt 0 ]; then
@@ -512,7 +512,7 @@ test_evidence_collection_workflow() {
                 ((collected_evidence++))
                 
                 # Check evidence file
-                local evidence_file=$(find "$SECURITY_SUITE_HOME/evidence" -name "${test_incident_id}_${evidence_type}_*" 2>/dev/null | head -n1)
+                local evidence_file=$(find "$AEGIS_HOME/evidence" -name "${test_incident_id}_${evidence_type}_*" 2>/dev/null | head -n1)
                 if [ -f "$evidence_file" ]; then
                     log_pass "Evidence file exists: $(basename "$evidence_file")"
                     
@@ -542,7 +542,7 @@ test_evidence_collection_workflow() {
                 log_pass "Evidence packaging completed"
                 
                 # Check for evidence package
-                local package_file=$(find "$SECURITY_SUITE_HOME/evidence" -name "${test_incident_id}_package_*" 2>/dev/null | head -n1)
+                local package_file=$(find "$AEGIS_HOME/evidence" -name "${test_incident_id}_package_*" 2>/dev/null | head -n1)
                 if [ -f "$package_file" ]; then
                     log_pass "Evidence package created: $(basename "$package_file")"
                 else
@@ -556,7 +556,7 @@ test_evidence_collection_workflow() {
         fi
         
         # Cleanup test evidence
-        find "$SECURITY_SUITE_HOME/evidence" -name "${test_incident_id}*" -delete 2>/dev/null || true
+        find "$AEGIS_HOME/evidence" -name "${test_incident_id}*" -delete 2>/dev/null || true
     else
         log_fail "Incident response script not found"
     fi
@@ -663,9 +663,9 @@ test_cleanup_workflow() {
     
     # Test log cleanup
     local log_dirs=(
-        "$SECURITY_SUITE_HOME/logs/error"
-        "$SECURITY_SUITE_HOME/logs/manual"
-        "$SECURITY_SUITE_HOME/logs/behavioral"
+        "$AEGIS_HOME/logs/error"
+        "$AEGIS_HOME/logs/manual"
+        "$AEGIS_HOME/logs/behavioral"
     )
     
     for dir in "${log_dirs[@]}"; do
@@ -691,9 +691,9 @@ test_cleanup_workflow() {
     
     # Test database cleanup
     local databases=(
-        "$SECURITY_SUITE_HOME/configs/behavioral_analysis/behavioral_data.db"
-        "$SECURITY_SUITE_HOME/configs/threat_intelligence/ioc_database.db"
-        "$SECURITY_SUITE_HOME/configs/incident_response/incidents.db"
+        "$AEGIS_HOME/configs/behavioral_analysis/behavioral_data.db"
+        "$AEGIS_HOME/configs/threat_intelligence/ioc_database.db"
+        "$AEGIS_HOME/configs/incident_response/incidents.db"
     )
     
     for db in "${databases[@]}"; do
@@ -720,7 +720,7 @@ test_cleanup_workflow() {
     # Test temporary file cleanup
     local temp_dirs=(
         "/tmp"
-        "$SECURITY_SUITE_HOME/tmp"
+        "$AEGIS_HOME/tmp"
     )
     
     for dir in "${temp_dirs[@]}"; do

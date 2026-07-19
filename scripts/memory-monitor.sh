@@ -6,10 +6,10 @@ source "$(dirname "$0")/common-functions.sh"
 
 # Get security suite home directory
 SCRIPT_DIR="$(dirname "$0")"
-SECURITY_SUITE_HOME="$(dirname "$SCRIPT_DIR")"
+AEGIS_HOME="$(dirname "$SCRIPT_DIR")"
 
 # Load configuration from security-config.conf
-CONFIG_FILE="$SECURITY_SUITE_HOME/configs/security-config.conf"
+CONFIG_FILE="$AEGIS_HOME/configs/security-config.conf"
 if [ -f "$CONFIG_FILE" ]; then
     source "$CONFIG_FILE"
 else
@@ -23,14 +23,14 @@ fi
 CHECK_INTERVAL=30  # seconds
 
 # Log file for memory monitoring
-MEMORY_LOG="$SECURITY_SUITE_HOME/logs/memory-monitor.log"
+MEMORY_LOG="$AEGIS_HOME/logs/memory-monitor.log"
 
 # Initialize memory monitoring
 init_memory_monitoring() {
     log_info "Initializing memory monitoring system..."
     
     # Create logs directory if it doesn't exist
-    mkdir -p "$SECURITY_SUITE_HOME/logs"
+    mkdir -p "$AEGIS_HOME/logs"
     
     # Initialize log file
     echo "Memory Monitor Log - $(date)" > "$MEMORY_LOG"
@@ -128,11 +128,11 @@ emergency_memory_cleanup() {
     fi
     
     # Clean up old log files
-    find "$SECURITY_SUITE_HOME/logs" -name "*.log" -mtime +7 -delete 2>/dev/null || true
+    find "$AEGIS_HOME/logs" -name "*.log" -mtime +7 -delete 2>/dev/null || true
     
     # Clean up temporary files
-    find "$SECURITY_SUITE_HOME/configs" -name "*.tmp" -mtime +1 -delete 2>/dev/null || true
-    find "$SECURITY_SUITE_HOME/configs" -name "cache/*" -mtime +3 -delete 2>/dev/null || true
+    find "$AEGIS_HOME/configs" -name "*.tmp" -mtime +1 -delete 2>/dev/null || true
+    find "$AEGIS_HOME/configs" -name "cache/*" -mtime +3 -delete 2>/dev/null || true
     
     log_info "Emergency memory cleanup completed"
 }
@@ -142,13 +142,13 @@ preventive_memory_cleanup() {
     log_info "Performing preventive memory cleanup..."
     
     # Clean up old cache files
-    find "$SECURITY_SUITE_HOME/configs" -name "cache/*" -mtime +1 -delete 2>/dev/null || true
+    find "$AEGIS_HOME/configs" -name "cache/*" -mtime +1 -delete 2>/dev/null || true
     
     # Vacuum databases to reclaim space
     local databases=(
-        "$SECURITY_SUITE_HOME/configs/behavioral_analysis/behavioral_data.db"
-        "$SECURITY_SUITE_HOME/configs/threat_intelligence/ioc_database.db"
-        "$SECURITY_SUITE_HOME/configs/incident_response/incidents.db"
+        "$AEGIS_HOME/configs/behavioral_analysis/behavioral_data.db"
+        "$AEGIS_HOME/configs/threat_intelligence/ioc_database.db"
+        "$AEGIS_HOME/configs/incident_response/incidents.db"
     )
     
     for db in "${databases[@]}"; do
@@ -178,7 +178,7 @@ monitor_security_processes() {
 
 # Generate memory usage report
 generate_memory_report() {
-    local report_file="$SECURITY_SUITE_HOME/logs/memory-report-$(date +%Y%m%d_%H%M%S).txt"
+    local report_file="$AEGIS_HOME/logs/memory-report-$(date +%Y%m%d_%H%M%S).txt"
     
     {
         echo "Memory Usage Report - $(date)"
@@ -194,10 +194,10 @@ generate_memory_report() {
         ps aux | grep -E "(behavioral|threat|dashboard)" | grep -v grep
         echo ""
         echo "Database Sizes:"
-        find "$SECURITY_SUITE_HOME/configs" -name "*.db" -exec ls -lh {} \;
+        find "$AEGIS_HOME/configs" -name "*.db" -exec ls -lh {} \;
         echo ""
         echo "Cache Directory Sizes:"
-        du -sh "$SECURITY_SUITE_HOME/configs"/*/cache 2>/dev/null || echo "No cache directories found"
+        du -sh "$AEGIS_HOME/configs"/*/cache 2>/dev/null || echo "No cache directories found"
     } > "$report_file"
     
     log_info "Memory report generated: $report_file"

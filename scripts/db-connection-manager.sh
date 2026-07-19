@@ -6,7 +6,7 @@ source "$(dirname "$0")/common-functions.sh"
 
 # Get security suite home directory
 SCRIPT_DIR="$(dirname "$0")"
-SECURITY_SUITE_HOME="$(dirname "$SCRIPT_DIR")"
+AEGIS_HOME="$(dirname "$SCRIPT_DIR")"
 
 # Database connection configuration
 MAX_CONNECTIONS=5
@@ -16,10 +16,10 @@ CLEANUP_INTERVAL=100
 MAX_DB_SIZE_MB=500  # Maximum database size before forced cleanup
 
 # Database paths
-BEHAVIORAL_DB="$SECURITY_SUITE_HOME/configs/behavioral_analysis/behavioral_data.db"
-THREAT_DB="$SECURITY_SUITE_HOME/configs/threat_intelligence/ioc_database.db"
-INCIDENT_DB="$SECURITY_SUITE_HOME/configs/incident_response/incidents.db"
-AUTH_DB="$SECURITY_SUITE_HOME/web-dashboard/auth.db"
+BEHAVIORAL_DB="$AEGIS_HOME/configs/behavioral_analysis/behavioral_data.db"
+THREAT_DB="$AEGIS_HOME/configs/threat_intelligence/ioc_database.db"
+INCIDENT_DB="$AEGIS_HOME/configs/incident_response/incidents.db"
+AUTH_DB="$AEGIS_HOME/web-dashboard/auth.db"
 
 # Connection tracking
 declare -A DB_CONNECTIONS
@@ -31,7 +31,7 @@ init_db_connection_manager() {
     log_info "Initializing database connection manager..."
     
     # Create connection tracking directory
-    mkdir -p "$SECURITY_SUITE_HOME/.db_connections"
+    mkdir -p "$AEGIS_HOME/.db_connections"
     
     # Set database pragmas for optimization
     setup_database_optimizations
@@ -85,7 +85,7 @@ get_db_connection() {
     fi
     
     # Create connection
-    local connection_file="$SECURITY_SUITE_HOME/.db_connections/conn_${connection_id}_$(date +%s).tmp"
+    local connection_file="$AEGIS_HOME/.db_connections/conn_${connection_id}_$(date +%s).tmp"
     
     # Test connection
     if sqlite3 "$db_path" "SELECT 1;" > /dev/null 2>&1; then
@@ -182,10 +182,10 @@ cleanup_old_connections() {
     local max_age=300  # 5 minutes
     
     # Find and remove old connection files
-    find "$SECURITY_SUITE_HOME/.db_connections" -name "conn_*" -type f -mmin +5 -delete 2>/dev/null || true
+    find "$AEGIS_HOME/.db_connections" -name "conn_*" -type f -mmin +5 -delete 2>/dev/null || true
     
     # Update connection count
-    local active_connections=$(find "$SECURITY_SUITE_HOME/.db_connections" -name "conn_*" -type f -mmin -5 | wc -l)
+    local active_connections=$(find "$AEGIS_HOME/.db_connections" -name "conn_*" -type f -mmin -5 | wc -l)
     DB_CONNECTIONS[$db_path]=$active_connections
 }
 
@@ -321,7 +321,7 @@ EOF
 # Backup database
 backup_database() {
     local db_path="$1"
-    local backup_dir="${2:-$SECURITY_SUITE_HOME/backups}"
+    local backup_dir="${2:-$AEGIS_HOME/backups}"
     
     if [ ! -f "$db_path" ]; then
         log_error "Database not found: $db_path"
@@ -419,10 +419,10 @@ cleanup_connection_manager() {
     log_info "Cleaning up database connection manager..."
     
     # Remove all connection files
-    rm -f "$SECURITY_SUITE_HOME/.db_connections/conn_*.tmp" 2>/dev/null || true
+    rm -f "$AEGIS_HOME/.db_connections/conn_*.tmp" 2>/dev/null || true
     
     # Remove connection tracking directory
-    rmdir "$SECURITY_SUITE_HOME/.db_connections" 2>/dev/null || true
+    rmdir "$AEGIS_HOME/.db_connections" 2>/dev/null || true
     
     log_info "Database connection manager cleanup completed"
 }

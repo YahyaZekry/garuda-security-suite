@@ -18,8 +18,15 @@ NC='\033[0m' # No Color
 REMOVE_SYSTEMD_TIMERS=""
 REMOVE_SECURITY_SUITE_DIR=""
 REMOVE_SECURITY_TOOLS=""
+REMOVE_SYSTEM_WIDE_DASHBOARD=""
+REMOVE_DASHBOARD_USER=""
 CREATE_BACKUP=""
 BACKUP_LOCATION=""
+
+# Set by scan_installation() if a team-mode (system-wide) dashboard install
+# is detected - i.e. install-dashboard.sh or install-service.sh, not the
+# default systemctl --user path.
+SYSTEM_WIDE_DASHBOARD_FOUND=false
 
 # Status tracking
 ISSUES_FOUND=0
@@ -99,15 +106,15 @@ scan_installation() {
     local missing_components=()
     
     # Get security suite home directory
-    SECURITY_SUITE_HOME="${SECURITY_SUITE_HOME:-$HOME/security-suite}"
+    AEGIS_HOME="${AEGIS_HOME:-$HOME/aegis-security-suite}"
     
     # Check main directory
-    if [ -d "$SECURITY_SUITE_HOME" ]; then
-        found_components+=("Security suite directory ($SECURITY_SUITE_HOME)")
+    if [ -d "$AEGIS_HOME" ]; then
+        found_components+=("Aegis Security Suite directory ($AEGIS_HOME)")
         
         # Count files in subdirectories
-        local script_count=$(find "$SECURITY_SUITE_HOME/scripts" -type f 2>/dev/null | wc -l)
-        local log_count=$(find "$SECURITY_SUITE_HOME/logs" -type f 2>/dev/null | wc -l)
+        local script_count=$(find "$AEGIS_HOME/scripts" -type f 2>/dev/null | wc -l)
+        local log_count=$(find "$AEGIS_HOME/logs" -type f 2>/dev/null | wc -l)
         
         if [ "$script_count" -gt 0 ]; then
             found_components+=("$script_count security script files")
@@ -117,11 +124,11 @@ scan_installation() {
             found_components+=("$log_count log files")
         fi
         
-        if [ -f "$SECURITY_SUITE_HOME/configs/security-config.conf" ]; then
+        if [ -f "$AEGIS_HOME/configs/security-config.conf" ]; then
             found_components+=("Configuration file")
         fi
     else
-        missing_components+=("Security suite directory")
+        missing_components+=("Aegis Security Suite directory")
     fi
     
     # Check systemd timers
@@ -141,7 +148,31 @@ scan_installation() {
     if [ "$unit_files" -gt 0 ]; then
         found_components+=("$unit_files systemd unit files")
     fi
-    
+
+    # Check for a team-mode (system-wide) dashboard install - created by
+    # install-dashboard.sh or install-service.sh, not the default
+    # systemctl --user path, and not otherwise touched by this uninstaller.
+    if [ -f "/etc/systemd/system/aegis-dashboard.service" ]; then
+        found_components+=("System-wide dashboard service (/etc/systemd/system/aegis-dashboard.service, requires sudo to remove)")
+        SYSTEM_WIDE_DASHBOARD_FOUND=true
+    fi
+    if id "aegis-dashboard" &>/dev/null; then
+        found_components+=("Dedicated 'aegis-dashboard' system user account")
+        SYSTEM_WIDE_DASHBOARD_FOUND=true
+    fi
+    if [ -f "/etc/nginx/sites-available/aegis-dashboard" ] || [ -L "/etc/nginx/sites-enabled/aegis-dashboard" ]; then
+        found_components+=("Nginx reverse proxy config")
+        SYSTEM_WIDE_DASHBOARD_FOUND=true
+    fi
+    if [ -f "/etc/logrotate.d/aegis-dashboard" ]; then
+        found_components+=("Logrotate config for the dashboard")
+        SYSTEM_WIDE_DASHBOARD_FOUND=true
+    fi
+    if [ -f "/etc/default/aegis-dashboard" ]; then
+        found_components+=("Dashboard systemd environment file (/etc/default/aegis-dashboard)")
+        SYSTEM_WIDE_DASHBOARD_FOUND=true
+    fi
+
     # Display results
     if [ ${#found_components[@]} -gt 0 ]; then
         echo -e "${GREEN}📦 Found components to remove:${NC}"
@@ -164,10 +195,10 @@ create_backup() {
         show_progress "Creating backup of security suite"
         
         local timestamp=$(date +"%Y%m%d_%H%M%S")
-        BACKUP_LOCATION="$HOME/security-suite-backup-$timestamp"
+        BACKUP_LOCATION="$HOME/aegis-security-suite-backup-$timestamp"
         
-        if [ -d "$SECURITY_SUITE_HOME" ]; then
-            if cp -r "$SECURITY_SUITE_HOME" "$BACKUP_LOCATION"; then
+        if [ -d "$AEGIS_HOME" ]; then
+            if cp -r "$AEGIS_HOME" "$BACKUP_LOCATION"; then
                 show_success "Backup created at: $BACKUP_LOCATION"
             else
                 show_error "Failed to create backup"
@@ -262,22 +293,90 @@ remove_systemd_components() {
     fi
 }
 
+# Remove team-mode (system-wide) dashboard components: the systemd service,
+# env file, nginx config, logrotate config, and firewall rules created by
+# install-dashboard.sh / install-service.sh. Requires sudo since none of
+# this lives under the current user's own systemd --user scope.
+remove_system_wide_dashboard() {
+    show_progress "Removing system-wide dashboard components (requires sudo)"
+
+    if [ -f "/etc/systemd/system/aegis-dashboard.service" ]; then
+        sudo systemctl stop aegis-dashboard 2>/dev/null
+        sudo systemctl disable aegis-dashboard 2>/dev/null
+        sudo rm -f /etc/systemd/system/aegis-dashboard.service
+        show_success "Removed system-wide dashboard service"
+    fi
+
+    if [ -f "/etc/default/aegis-dashboard" ]; then
+        sudo rm -f /etc/default/aegis-dashboard
+        show_success "Removed dashboard environment file"
+    fi
+
+    if [ -L "/etc/nginx/sites-enabled/aegis-dashboard" ] || [ -f "/etc/nginx/sites-available/aegis-dashboard" ]; then
+        sudo rm -f /etc/nginx/sites-enabled/aegis-dashboard
+        sudo rm -f /etc/nginx/sites-available/aegis-dashboard
+        if command -v nginx &>/dev/null && sudo systemctl is-active --quiet nginx 2>/dev/null; then
+            sudo nginx -t 2>/dev/null && sudo systemctl reload nginx 2>/dev/null
+        fi
+        show_success "Removed nginx reverse proxy config"
+    fi
+
+    if [ -f "/etc/logrotate.d/aegis-dashboard" ]; then
+        sudo rm -f /etc/logrotate.d/aegis-dashboard
+        show_success "Removed logrotate config"
+    fi
+
+    if [ -f "/usr/share/applications/aegis-dashboard.desktop" ]; then
+        sudo rm -f /usr/share/applications/aegis-dashboard.desktop
+        show_success "Removed desktop entry"
+    fi
+
+    # Best-effort firewall rule cleanup - safe to attempt even if the rule
+    # was never added or the tool isn't in use.
+    if command -v ufw &>/dev/null; then
+        sudo ufw delete allow 8080/tcp 2>/dev/null
+        sudo ufw delete allow 80/tcp comment "Aegis Dashboard HTTP" 2>/dev/null
+        sudo ufw delete allow 443/tcp comment "Aegis Dashboard HTTPS" 2>/dev/null
+    elif command -v firewall-cmd &>/dev/null; then
+        sudo firewall-cmd --permanent --remove-port=8080/tcp 2>/dev/null
+        sudo firewall-cmd --reload 2>/dev/null
+    fi
+
+    sudo systemctl daemon-reload 2>/dev/null
+    show_success "System-wide dashboard components removed"
+}
+
+# Removing the dedicated system user is kept separate from
+# remove_system_wide_dashboard() and asked about individually, since
+# deleting a system account is a more sensitive action than removing
+# config/unit files.
+remove_dashboard_system_user() {
+    if id "aegis-dashboard" &>/dev/null; then
+        show_progress "Removing 'aegis-dashboard' system user account"
+        if sudo userdel aegis-dashboard 2>/dev/null; then
+            show_success "Removed aegis-dashboard system user"
+        else
+            show_warning "Could not remove aegis-dashboard user (it may still own running processes or files)"
+        fi
+    fi
+}
+
 # Remove security suite directory
 remove_security_suite_directory() {
     if [ "$REMOVE_SECURITY_SUITE_DIR" = "y" ]; then
         show_progress "Removing security suite directory"
         
-        if [ -d "$SECURITY_SUITE_HOME" ]; then
-            local dir_size=$(du -sh "$SECURITY_SUITE_HOME" 2>/dev/null | cut -f1)
+        if [ -d "$AEGIS_HOME" ]; then
+            local dir_size=$(du -sh "$AEGIS_HOME" 2>/dev/null | cut -f1)
             
-            if rm -rf "$SECURITY_SUITE_HOME"; then
-                show_success "Removed $SECURITY_SUITE_HOME directory ($dir_size)"
+            if rm -rf "$AEGIS_HOME"; then
+                show_success "Removed $AEGIS_HOME directory ($dir_size)"
             else
-                show_error "Failed to remove $SECURITY_SUITE_HOME directory"
+                show_error "Failed to remove $AEGIS_HOME directory"
                 return 1
             fi
         else
-            show_info "Security suite directory not found (already removed?)"
+            show_info "Aegis Security Suite directory not found (already removed?)"
         fi
     fi
 }
@@ -323,9 +422,12 @@ terminate_running_processes() {
     
     # Get the current user's security suite directory (if it exists)
     local security_suite_dir=""
-    if [ -n "$SECURITY_SUITE_HOME" ] && [ -d "$SECURITY_SUITE_HOME" ]; then
-        security_suite_dir="$SECURITY_SUITE_HOME"
+    if [ -n "$AEGIS_HOME" ] && [ -d "$AEGIS_HOME" ]; then
+        security_suite_dir="$AEGIS_HOME"
+    elif [ -d "$HOME/aegis-security-suite" ]; then
+        security_suite_dir="$HOME/aegis-security-suite"
     elif [ -d "$HOME/security-suite" ]; then
+        # Pre-rename (before 2026-07-18) default install directory
         security_suite_dir="$HOME/security-suite"
     elif [ -d "/opt/aegis-security-suite" ]; then
         security_suite_dir="/opt/aegis-security-suite"
@@ -421,37 +523,56 @@ main_uninstall_process() {
     if ask_yes_no "Remove security tools (ClamAV, rkhunter, chkrootkit, Lynis)?"; then
         REMOVE_SECURITY_TOOLS="y"
     fi
-    
+
+    # Team-mode (system-wide) dashboard install: only ask if scan_installation()
+    # actually found one - meaningless otherwise, and it needs sudo, so it's
+    # kept as its own explicit opt-in rather than folded into the systemd-timers
+    # question above (which only ever touches the current user's own units).
+    if [ "$SYSTEM_WIDE_DASHBOARD_FOUND" = true ]; then
+        echo ""
+        echo -e "${YELLOW}A team-mode (system-wide) dashboard install was detected.${NC}"
+        if ask_yes_no "Remove system-wide dashboard components (systemd service, nginx, firewall rules - requires sudo)?"; then
+            REMOVE_SYSTEM_WIDE_DASHBOARD="y"
+        fi
+        if ask_yes_no "Also remove the dedicated 'aegis-dashboard' system user account?"; then
+            REMOVE_DASHBOARD_USER="y"
+        fi
+    fi
+
     # Ask about backup
     if [ "$REMOVE_SECURITY_SUITE_DIR" = "y" ]; then
         if ask_yes_no "Create backup before removal?"; then
             CREATE_BACKUP="y"
         fi
     fi
-    
+
     echo ""
-    
+
     # Confirm removal
     echo -e "${CYAN}📋 Removal Summary:${NC}"
     [ "$REMOVE_SYSTEMD_TIMERS" = "y" ] && echo -e "   • ${WHITE}Systemd timers and services${NC}"
-    [ "$REMOVE_SECURITY_SUITE_DIR" = "y" ] && echo -e "   • ${WHITE}Security suite directory${NC}"
+    [ "$REMOVE_SECURITY_SUITE_DIR" = "y" ] && echo -e "   • ${WHITE}Aegis Security Suite directory${NC}"
     [ "$REMOVE_SECURITY_TOOLS" = "y" ] && echo -e "   • ${WHITE}Security tools packages${NC}"
+    [ "$REMOVE_SYSTEM_WIDE_DASHBOARD" = "y" ] && echo -e "   • ${WHITE}System-wide dashboard components (sudo)${NC}"
+    [ "$REMOVE_DASHBOARD_USER" = "y" ] && echo -e "   • ${WHITE}Dedicated 'aegis-dashboard' system user${NC}"
     [ "$CREATE_BACKUP" = "y" ] && echo -e "   • ${WHITE}Create backup first${NC}"
     echo ""
-    
+
     if ! ask_yes_no "Proceed with removal?"; then
         echo -e "${BLUE}👋 Uninstall cancelled by user${NC}"
         exit 0
     fi
-    
+
     echo ""
     echo -e "${CYAN}🗑️ Starting removal process...${NC}"
     echo ""
-    
+
     # Execute removal steps
     [ "$CREATE_BACKUP" = "y" ] && create_backup
     [ "$REMOVE_SYSTEMD_TIMERS" = "y" ] && remove_systemd_components
     terminate_running_processes
+    [ "$REMOVE_SYSTEM_WIDE_DASHBOARD" = "y" ] && remove_system_wide_dashboard
+    [ "$REMOVE_DASHBOARD_USER" = "y" ] && remove_dashboard_system_user
     [ "$REMOVE_SECURITY_SUITE_DIR" = "y" ] && remove_security_suite_directory
     [ "$REMOVE_SECURITY_TOOLS" = "y" ] && remove_security_tools
 }
@@ -465,9 +586,9 @@ verify_removal() {
     local remaining_items=()
     
     # Check for remaining components
-    SECURITY_SUITE_HOME="${SECURITY_SUITE_HOME:-$HOME/security-suite}"
-    if [ -d "$SECURITY_SUITE_HOME" ]; then
-        remaining_items+=("Security suite directory still exists")
+    AEGIS_HOME="${AEGIS_HOME:-$HOME/aegis-security-suite}"
+    if [ -d "$AEGIS_HOME" ]; then
+        remaining_items+=("Aegis Security Suite directory still exists")
     fi
     
     # Check for specific security scan timers mentioned in the test report
@@ -493,7 +614,7 @@ verify_removal() {
     # Check for other security suite processes
     local security_processes=$(pgrep -f "(behavioral-monitor|threat-intelligence|aegis-dashboard)" 2>/dev/null)
     if [ -n "$security_processes" ]; then
-        remaining_items+=("Security suite processes still running")
+        remaining_items+=("Aegis Security Suite processes still running")
     fi
     
     # Check for remaining systemd unit files
@@ -511,7 +632,17 @@ verify_removal() {
     if [ "$remaining_aegis_units" -gt 0 ]; then
         remaining_items+=("$remaining_aegis_units aegis systemd unit files remaining")
     fi
-    
+
+    # Check for remaining system-wide (team-mode) dashboard artifacts
+    if [ "$REMOVE_SYSTEM_WIDE_DASHBOARD" = "y" ]; then
+        [ -f "/etc/systemd/system/aegis-dashboard.service" ] && remaining_items+=("System-wide dashboard service still present")
+        [ -f "/etc/nginx/sites-available/aegis-dashboard" ] || [ -L "/etc/nginx/sites-enabled/aegis-dashboard" ] && remaining_items+=("Nginx reverse proxy config still present")
+        [ -f "/etc/logrotate.d/aegis-dashboard" ] && remaining_items+=("Dashboard logrotate config still present")
+    fi
+    if [ "$REMOVE_DASHBOARD_USER" = "y" ] && id "aegis-dashboard" &>/dev/null; then
+        remaining_items+=("'aegis-dashboard' system user account still exists")
+    fi
+
     # Report results
     if [ ${#remaining_items[@]} -eq 0 ]; then
         show_success "All selected components successfully removed!"
@@ -567,6 +698,6 @@ echo -e "${CYAN}================================================================
 
 # Log completion
 timestamp=$(date +"%Y-%m-%d %H:%M:%S")
-echo "$timestamp: Security suite uninstall completed - Actions: $ACTIONS_TAKEN, Issues: $ISSUES_FOUND" >> "$HOME/security-suite-uninstall.log" 2>/dev/null
+echo "$timestamp: Aegis Security Suite uninstall completed - Actions: $ACTIONS_TAKEN, Issues: $ISSUES_FOUND" >> "$HOME/aegis-security-suite-uninstall.log" 2>/dev/null
 
 exit 0

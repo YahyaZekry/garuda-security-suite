@@ -349,7 +349,7 @@ class SecurityScanner:
         return {'metrics': metrics, 'timeframe_hours': hours}
 
 # Initialize security scanner
-SECURITY_MONITORING_DB = os.path.join(os.getcwd(), 'configs', 'web-dashboard', 'security_monitoring.db')
+SECURITY_MONITORING_DB = os.path.join(os.environ.get('AEGIS_HOME', '/opt/aegis-security-suite'), 'configs', 'web-dashboard', 'security_monitoring.db')
 security_scanner = SecurityScanner(SECURITY_MONITORING_DB)
 
 def run_automated_security_scan():

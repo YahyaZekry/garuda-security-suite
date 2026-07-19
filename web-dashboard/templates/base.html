@@ -34,6 +34,7 @@
     {% block head %}{% endblock %}
     
     <meta name="csrf-token" content="{{ generate_csrf_token() }}">
+    <meta name="deployment-mode" content="{{ 'single_user' if is_single_user_mode() else 'team' }}">
     <!-- Theme Color for Mobile Browsers -->
     <meta name="theme-color" content="#1a73e8">
     

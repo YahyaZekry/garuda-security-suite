@@ -80,7 +80,7 @@ test_script_availability() {
 test_incident_database() {
     log_test "Testing Incident Database Structure"
     
-    local db_dir="$SECURITY_SUITE_HOME/configs/incident_response"
+    local db_dir="$AEGIS_HOME/configs/incident_response"
     local db_file="$db_dir/incidents.db"
     
     # Check database directory
@@ -149,7 +149,7 @@ test_incident_creation() {
                 log_pass "Incident creation successful: $incident_id"
                 
                 # Verify incident in database
-                local db_file="$SECURITY_SUITE_HOME/configs/incident_response/incidents.db"
+                local db_file="$AEGIS_HOME/configs/incident_response/incidents.db"
                 if [ -f "$db_file" ] && command -v sqlite3 &> /dev/null; then
                     local incident_count=$(sqlite3 "$db_file" "SELECT COUNT(*) FROM incidents WHERE id = '$incident_id';" 2>/dev/null || echo "0")
                     if [ "$incident_count" -eq 1 ]; then
@@ -197,7 +197,7 @@ test_evidence_collection() {
                 log_pass "System state evidence collection successful"
                 
                 # Check evidence file
-                local evidence_file=$(find "$SECURITY_SUITE_HOME/evidence" -name "${test_incident_id}_system_state_*" 2>/dev/null | head -n1)
+                local evidence_file=$(find "$AEGIS_HOME/evidence" -name "${test_incident_id}_system_state_*" 2>/dev/null | head -n1)
                 if [ -f "$evidence_file" ]; then
                     log_pass "Evidence file created: $(basename "$evidence_file")"
                     
@@ -229,7 +229,7 @@ test_evidence_collection() {
             fi
             
             # Cleanup test evidence
-            find "$SECURITY_SUITE_HOME/evidence" -name "${test_incident_id}*" -delete 2>/dev/null || true
+            find "$AEGIS_HOME/evidence" -name "${test_incident_id}*" -delete 2>/dev/null || true
         else
             log_fail "Evidence collection function not available"
         fi
@@ -369,7 +369,7 @@ test_notification_system() {
         fi
         
         # Test notification queue
-        local db_file="$SECURITY_SUITE_HOME/configs/incident_response/incidents.db"
+        local db_file="$AEGIS_HOME/configs/incident_response/incidents.db"
         if [ -f "$db_file" ] && command -v sqlite3 &> /dev/null; then
             local notification_count=$(sqlite3 "$db_file" "SELECT COUNT(*) FROM notifications;" 2>/dev/null || echo "0")
             if [ "$notification_count" -ge 0 ]; then
@@ -411,7 +411,7 @@ test_incident_timeline() {
             fi
             
             # Verify timeline in database
-            local db_file="$SECURITY_SUITE_HOME/configs/incident_response/incidents.db"
+            local db_file="$AEGIS_HOME/configs/incident_response/incidents.db"
             if [ -f "$db_file" ] && command -v sqlite3 &> /dev/null; then
                 local timeline_count=$(sqlite3 "$db_file" "SELECT COUNT(*) FROM timeline WHERE incident_id = '$test_incident_id';" 2>/dev/null || echo "0")
                 if [ "$timeline_count" -gt 0 ]; then

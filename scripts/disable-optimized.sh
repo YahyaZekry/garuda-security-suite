@@ -2,7 +2,7 @@
 # Disable Optimized Components Script
 
 SCRIPT_DIR="$(dirname "$0")"
-SECURITY_SUITE_HOME="$(dirname "$SCRIPT_DIR")"
+AEGIS_HOME="$(dirname "$SCRIPT_DIR")"
 
 echo "Disabling optimized Aegis Security Suite components..."
 
@@ -26,8 +26,8 @@ if [ -f "$SCRIPT_DIR/threat-intelligence.sh.backup" ]; then
     mv "$SCRIPT_DIR/threat-intelligence.sh.backup" "$SCRIPT_DIR/threat-intelligence.sh"
 fi
 
-if [ -f "$SECURITY_SUITE_HOME/web-dashboard/app.py.backup" ]; then
-    mv "$SECURITY_SUITE_HOME/web-dashboard/app.py.backup" "$SECURITY_SUITE_HOME/web-dashboard/app.py"
+if [ -f "$AEGIS_HOME/web-dashboard/app.py.backup" ]; then
+    mv "$AEGIS_HOME/web-dashboard/app.py.backup" "$AEGIS_HOME/web-dashboard/app.py"
 fi
 
 # Restart original services

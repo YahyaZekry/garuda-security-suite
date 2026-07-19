@@ -21,26 +21,26 @@ teardown() {
     export HOME="/home/testuser"
     export CURRENT_USER="testuser"
     export CURRENT_HOME="/home/testuser"
-    export SECURITY_SUITE_HOME="/home/testuser/security-suite"
+    export AEGIS_HOME="/home/testuser/aegis-security-suite"
     
     # Use functions from test helper instead of sourcing scripts
     [ "$CURRENT_USER" = "testuser" ]
     [ "$CURRENT_HOME" = "/home/testuser" ]
-    [ "$SECURITY_SUITE_HOME" = "/home/testuser/security-suite" ]
+    [ "$AEGIS_HOME" = "/home/testuser/aegis-security-suite" ]
 }
 
 @test "path resolution works with environment variable override" {
-    # Test with SECURITY_SUITE_HOME override
+    # Test with AEGIS_HOME override
     export USER="testuser"
     export HOME="/home/testuser"
     export CURRENT_USER="testuser"
     export CURRENT_HOME="/home/testuser"
-    export SECURITY_SUITE_HOME="/custom/security-suite"
+    export AEGIS_HOME="/custom/aegis-security-suite"
     
     # Use functions from test helper instead of sourcing scripts
     [ "$CURRENT_USER" = "testuser" ]
     [ "$CURRENT_HOME" = "/home/testuser" ]
-    [ "$SECURITY_SUITE_HOME" = "/custom/security-suite" ]
+    [ "$AEGIS_HOME" = "/custom/aegis-security-suite" ]
 }
 
 # Test systemd service generation with dynamic paths

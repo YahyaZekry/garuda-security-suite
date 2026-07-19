@@ -80,7 +80,7 @@ test_script_availability() {
 test_ioc_database() {
     log_test "Testing IOC Database Structure"
     
-    local db_dir="$SECURITY_SUITE_HOME/configs/threat_intelligence"
+    local db_dir="$AEGIS_HOME/configs/threat_intelligence"
     local db_file="$db_dir/ioc_database.db"
     
     # Check database directory
@@ -160,7 +160,7 @@ test_threat_feed_configuration() {
     fi
     
     # Check for cache directory
-    local cache_dir="$SECURITY_SUITE_HOME/configs/threat_intelligence/cache"
+    local cache_dir="$AEGIS_HOME/configs/threat_intelligence/cache"
     if [ -d "$cache_dir" ]; then
         log_pass "Threat feed cache directory exists: $cache_dir"
         
@@ -180,7 +180,7 @@ test_threat_feed_configuration() {
 test_ioc_types() {
     log_test "Testing IOC Types and Validation"
     
-    local db_file="$SECURITY_SUITE_HOME/configs/threat_intelligence/ioc_database.db"
+    local db_file="$AEGIS_HOME/configs/threat_intelligence/ioc_database.db"
     
     if [ -f "$db_file" ] && command -v sqlite3 &> /dev/null; then
         # Check for IOC types
@@ -300,7 +300,7 @@ test_threat_feed_processing() {
 test_database_operations() {
     log_test "Testing Database Operations"
     
-    local db_file="$SECURITY_SUITE_HOME/configs/threat_intelligence/ioc_database.db"
+    local db_file="$AEGIS_HOME/configs/threat_intelligence/ioc_database.db"
     
     if [ -f "$db_file" ] && command -v sqlite3 &> /dev/null; then
         # Test IOC insertion
@@ -395,7 +395,7 @@ test_api_integration() {
 test_cache_management() {
     log_test "Testing Cache Management"
     
-    local cache_dir="$SECURITY_SUITE_HOME/configs/threat_intelligence/cache"
+    local cache_dir="$AEGIS_HOME/configs/threat_intelligence/cache"
     
     if [ -d "$cache_dir" ]; then
         log_pass "Cache directory exists"

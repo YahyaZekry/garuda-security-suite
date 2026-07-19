@@ -18,7 +18,7 @@ from auth import require_auth, require_role
 
 config_bp = Blueprint('config', __name__, url_prefix='/api/config')
 
-CONFIG_DIR = os.path.join(os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite'), 'configs')
+CONFIG_DIR = os.path.join(os.environ.get('AEGIS_HOME', '/opt/aegis-security-suite'), 'configs')
 CONFIG_FILE = os.path.join(CONFIG_DIR, 'web-dashboard', 'dashboard.conf')
 BACKUP_DIR = os.path.join(CONFIG_DIR, 'web-dashboard', 'backups')
 HISTORY_FILE = os.path.join(CONFIG_DIR, 'web-dashboard', 'config_history.json')
@@ -28,6 +28,10 @@ DEFAULT_CONFIG = {
     'security_level': 'High',
     'last_update': '2h',
     'config_status': 'Valid',
+    # 'single_user' (default): one operator, no team-coordination UI/RBAC
+    # friction. 'team': multi-analyst RBAC tiers, incident assignment/
+    # escalation, and team-status are shown.
+    'deployment_mode': 'single_user',
     'general': {
         'system_name': 'Aegis Security Suite',
         'environment': 'production',
@@ -133,6 +137,13 @@ def save_history(history):
         json.dump(history, f, indent=2)
 
 
+def is_single_user_mode():
+    """True unless the operator has explicitly switched to 'team' mode in
+    Settings. Used to gate RBAC tiers, incident assignment/escalation, and
+    team-status UI/endpoints that only make sense with multiple analysts."""
+    return load_config().get('deployment_mode', 'single_user') != 'team'
+
+
 def add_history_entry(title, description, type='info'):
     history = load_history()
     entry = {
@@ -173,7 +184,7 @@ def save_config_endpoint():
         for section in ['general', 'security', 'scanning', 'notifications', 'api']:
             if section in data and isinstance(data[section], dict):
                 current[section].update(data[section])
-        for key in ['active_modules', 'security_level', 'last_update', 'config_status']:
+        for key in ['active_modules', 'security_level', 'last_update', 'config_status', 'deployment_mode']:
             if key in data:
                 current[key] = data[key]
         save_config(current)

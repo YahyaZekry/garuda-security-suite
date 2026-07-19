@@ -1,6 +1,14 @@
 #!/bin/bash
 # Aegis Security Suite Dashboard Service Installation Script
 # Installs the dashboard as a systemd service
+#
+# NOTE: This script is superseded by the deployment-mode prompt in
+# ../setup-aegis.sh, which now branches to the right installer for you:
+#   - Single user: setup-aegis.sh's own lightweight `systemctl --user` install
+#   - Team/whole-system: install-dashboard.sh (dedicated service account,
+#     nginx reverse proxy, firewall rules)
+# This script is kept for anyone invoking it directly, but new installs
+# should go through setup-aegis.sh instead of running this by hand.
 
 set -e
 
@@ -25,7 +33,7 @@ else
     # Fallback if common functions not available
     CURRENT_USER=$(whoami)
     CURRENT_HOME=$(getent passwd "$CURRENT_USER" | cut -d: -f6)
-    SECURITY_SUITE_HOME="${SECURITY_SUITE_HOME:-$CURRENT_HOME/security-suite}"
+    AEGIS_HOME="${AEGIS_HOME:-$CURRENT_HOME/aegis-security-suite}"
 fi
 
 # Function to print colored output
@@ -58,28 +66,28 @@ validate_installation() {
     print_status "Validating dashboard installation..."
     
     # Check if dashboard directory exists
-    if [[ ! -d "$SECURITY_SUITE_HOME/web-dashboard" ]]; then
-        print_error "Dashboard directory not found at $SECURITY_SUITE_HOME/web-dashboard"
+    if [[ ! -d "$AEGIS_HOME/web-dashboard" ]]; then
+        print_error "Dashboard directory not found at $AEGIS_HOME/web-dashboard"
         exit 1
     fi
     
     # Check if main app file exists
-    if [[ ! -f "$SECURITY_SUITE_HOME/web-dashboard/app.py" ]]; then
+    if [[ ! -f "$AEGIS_HOME/web-dashboard/app.py" ]]; then
         print_error "Dashboard application file not found"
         exit 1
     fi
     
     # Check if virtual environment exists
-    if [[ ! -d "$SECURITY_SUITE_HOME/web-dashboard/venv" ]]; then
+    if [[ ! -d "$AEGIS_HOME/web-dashboard/venv" ]]; then
         print_warning "Virtual environment not found, creating..."
-        python3 -m venv "$SECURITY_SUITE_HOME/web-dashboard/venv"
+        python3 -m venv "$AEGIS_HOME/web-dashboard/venv"
     fi
     
     # Check if requirements are installed
-    if [[ -f "$SECURITY_SUITE_HOME/web-dashboard/requirements.txt" ]]; then
+    if [[ -f "$AEGIS_HOME/web-dashboard/requirements.txt" ]]; then
         print_status "Installing Python requirements..."
-        source "$SECURITY_SUITE_HOME/web-dashboard/venv/bin/activate"
-        pip install -r "$SECURITY_SUITE_HOME/web-dashboard/requirements.txt" >/dev/null 2>&1
+        source "$AEGIS_HOME/web-dashboard/venv/bin/activate"
+        pip install -r "$AEGIS_HOME/web-dashboard/requirements.txt" >/dev/null 2>&1
         deactivate
     fi
     
@@ -94,21 +102,21 @@ create_service_user() {
     print_status "Using current user: $CURRENT_USER"
     
     # Set proper ownership for security suite home
-    chown -R "$CURRENT_USER:$CURRENT_USER" "$SECURITY_SUITE_HOME"
-    chmod -R 755 "$SECURITY_SUITE_HOME"
+    chown -R "$CURRENT_USER:$CURRENT_USER" "$AEGIS_HOME"
+    chmod -R 755 "$AEGIS_HOME"
     
     # Ensure logs and configs directories are writable
-    mkdir -p "$SECURITY_SUITE_HOME/logs"
-    mkdir -p "$SECURITY_SUITE_HOME/configs"
-    mkdir -p "$SECURITY_SUITE_HOME/configs/web-dashboard"
-    chown -R "$CURRENT_USER:$CURRENT_USER" "$SECURITY_SUITE_HOME/logs"
-    chown -R "$CURRENT_USER:$CURRENT_USER" "$SECURITY_SUITE_HOME/configs"
-    chmod -R 755 "$SECURITY_SUITE_HOME/logs"
-    chmod -R 755 "$SECURITY_SUITE_HOME/configs"
+    mkdir -p "$AEGIS_HOME/logs"
+    mkdir -p "$AEGIS_HOME/configs"
+    mkdir -p "$AEGIS_HOME/configs/web-dashboard"
+    chown -R "$CURRENT_USER:$CURRENT_USER" "$AEGIS_HOME/logs"
+    chown -R "$CURRENT_USER:$CURRENT_USER" "$AEGIS_HOME/configs"
+    chmod -R 755 "$AEGIS_HOME/logs"
+    chmod -R 755 "$AEGIS_HOME/configs"
     
     # Ensure web-dashboard directory is accessible
-    chown -R "$CURRENT_USER:$CURRENT_USER" "$SECURITY_SUITE_HOME/web-dashboard"
-    chmod -R 755 "$SECURITY_SUITE_HOME/web-dashboard"
+    chown -R "$CURRENT_USER:$CURRENT_USER" "$AEGIS_HOME/web-dashboard"
+    chmod -R 755 "$AEGIS_HOME/web-dashboard"
 }
 
 # Function to install systemd service
@@ -119,7 +127,7 @@ install_service() {
     cp "$SCRIPT_DIR/$SERVICE_FILE" "$SYSTEMD_DIR/"
     
     # Update service file with actual paths
-    sed -i "s|/opt/aegis-security-suite|$SECURITY_SUITE_HOME|g" "$SYSTEMD_DIR/$SERVICE_FILE"
+    sed -i "s|/opt/aegis-security-suite|$AEGIS_HOME|g" "$SYSTEMD_DIR/$SERVICE_FILE"
     
     # Reload systemd
     systemctl daemon-reload
@@ -137,7 +145,7 @@ configure_service() {
     # Create environment file for service
     cat > "/etc/default/$SERVICE_NAME" << EOF
 # Aegis Security Suite Dashboard Environment Configuration
-SECURITY_SUITE_HOME="$SECURITY_SUITE_HOME"
+AEGIS_HOME="$AEGIS_HOME"
 FLASK_ENV=production
 FLASK_APP=app.py
 DASHBOARD_PORT=8080
@@ -255,12 +263,12 @@ show_help() {
     echo "  help        Show this help message"
     echo ""
     echo "Environment Variables:"
-    echo "  SECURITY_SUITE_HOME    Path to security suite installation (default: \$HOME/security-suite)"
+    echo "  AEGIS_HOME    Path to security suite installation (default: \$HOME/aegis-security-suite)"
     echo ""
     echo "Examples:"
     echo "  $0 install              # Install service"
     echo "  $0 start               # Start service"
-    echo "  SECURITY_SUITE_HOME=/opt/security $0 install  # Install with custom path"
+    echo "  AEGIS_HOME=/opt/security $0 install  # Install with custom path"
 }
 
 # Main script logic

@@ -79,10 +79,10 @@ test_configuration_integration() {
     
     # Check component-specific configuration files
     local config_dirs=(
-        "$SECURITY_SUITE_HOME/configs/behavioral_analysis"
-        "$SECURITY_SUITE_HOME/configs/threat_intelligence"
-        "$SECURITY_SUITE_HOME/configs/incident_response"
-        "$SECURITY_SUITE_HOME/web-dashboard/config"
+        "$AEGIS_HOME/configs/behavioral_analysis"
+        "$AEGIS_HOME/configs/threat_intelligence"
+        "$AEGIS_HOME/configs/incident_response"
+        "$AEGIS_HOME/web-dashboard/config"
     )
     
     for dir in "${config_dirs[@]}"; do
@@ -155,9 +155,9 @@ test_database_integration() {
     
     # Check for database files
     local databases=(
-        "$SECURITY_SUITE_HOME/configs/behavioral_analysis/behavioral_data.db"
-        "$SECURITY_SUITE_HOME/configs/threat_intelligence/ioc_database.db"
-        "$SECURITY_SUITE_HOME/configs/incident_response/incidents.db"
+        "$AEGIS_HOME/configs/behavioral_analysis/behavioral_data.db"
+        "$AEGIS_HOME/configs/threat_intelligence/ioc_database.db"
+        "$AEGIS_HOME/configs/incident_response/incidents.db"
     )
     
     for db in "${databases[@]}"; do
@@ -181,8 +181,8 @@ test_database_integration() {
     done
     
     # Test database cross-references
-    local behavioral_db="$SECURITY_SUITE_HOME/configs/behavioral_analysis/behavioral_data.db"
-    local incident_db="$SECURITY_SUITE_HOME/configs/incident_response/incidents.db"
+    local behavioral_db="$AEGIS_HOME/configs/behavioral_analysis/behavioral_data.db"
+    local incident_db="$AEGIS_HOME/configs/incident_response/incidents.db"
     
     if [ -f "$behavioral_db" ] && [ -f "$incident_db" ] && command -v sqlite3 &> /dev/null; then
         # Check if behavioral analysis can create incidents
@@ -205,10 +205,10 @@ test_logging_integration() {
     
     # Check for log directories
     local log_dirs=(
-        "$SECURITY_SUITE_HOME/logs/error"
-        "$SECURITY_SUITE_HOME/logs/manual"
-        "$SECURITY_SUITE_HOME/logs/behavioral"
-        "$SECURITY_SUITE_HOME/logs/incidents"
+        "$AEGIS_HOME/logs/error"
+        "$AEGIS_HOME/logs/manual"
+        "$AEGIS_HOME/logs/behavioral"
+        "$AEGIS_HOME/logs/incidents"
     )
     
     for dir in "${log_dirs[@]}"; do
@@ -220,7 +220,7 @@ test_logging_integration() {
     done
     
     # Check for log files
-    local log_files=$(find "$SECURITY_SUITE_HOME/logs" -name "*.log" -type f 2>/dev/null)
+    local log_files=$(find "$AEGIS_HOME/logs" -name "*.log" -type f 2>/dev/null)
     if [ -n "$log_files" ]; then
         log_pass "Log files found"
         
@@ -233,7 +233,7 @@ test_logging_integration() {
             if head -n 5 "$log_file" | grep -q "^[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}"; then
                 ((formatted_logs++))
             fi
-        done < <(find "$SECURITY_SUITE_HOME/logs" -name "*.log" -type f -print0 2>/dev/null)
+        done < <(find "$AEGIS_HOME/logs" -name "*.log" -type f -print0 2>/dev/null)
         
         if [ "$formatted_logs" -eq "$log_count" ]; then
             log_pass "All log files have proper format"
@@ -411,7 +411,7 @@ test_dashboard_integration() {
             log_pass "Dashboard API file exists: $(basename "$file")"
             
             # Check for database integration
-            if grep -q "sqlite3\|database\|SECURITY_SUITE_HOME" "$file" 2>/dev/null; then
+            if grep -q "sqlite3\|database\|AEGIS_HOME" "$file" 2>/dev/null; then
                 log_pass "API integrates with security suite: $(basename "$file")"
             else
                 log_warn "API may not integrate with security suite: $(basename "$file")"
@@ -423,7 +423,7 @@ test_dashboard_integration() {
     
     # Check dashboard configuration integration
     if [ -f "$PROJECT_ROOT/web-dashboard/config/dashboard.conf" ]; then
-        if grep -q "SECURITY_SUITE_HOME\|security-config.conf" "$PROJECT_ROOT/web-dashboard/config/dashboard.conf" 2>/dev/null; then
+        if grep -q "AEGIS_HOME\|security-config.conf" "$PROJECT_ROOT/web-dashboard/config/dashboard.conf" 2>/dev/null; then
             log_pass "Dashboard integrates with security suite configuration"
         else
             log_fail "Dashboard does not integrate with security suite configuration"
@@ -506,8 +506,8 @@ test_data_flow_integration() {
     log_test "Testing Data Flow Integration"
     
     # Test behavioral analysis to incident response data flow
-    local behavioral_db="$SECURITY_SUITE_HOME/configs/behavioral_analysis/behavioral_data.db"
-    local incident_db="$SECURITY_SUITE_HOME/configs/incident_response/incidents.db"
+    local behavioral_db="$AEGIS_HOME/configs/behavioral_analysis/behavioral_data.db"
+    local incident_db="$AEGIS_HOME/configs/incident_response/incidents.db"
     
     if [ -f "$behavioral_db" ] && [ -f "$incident_db" ] && command -v sqlite3 &> /dev/null; then
         # Check if behavioral analysis can trigger incidents
@@ -543,7 +543,7 @@ test_data_flow_integration() {
     fi
     
     # Test threat intelligence to behavioral analysis data flow
-    local threat_db="$SECURITY_SUITE_HOME/configs/threat_intelligence/ioc_database.db"
+    local threat_db="$AEGIS_HOME/configs/threat_intelligence/ioc_database.db"
     
     if [ -f "$threat_db" ] && [ -f "$behavioral_db" ] && command -v sqlite3 &> /dev/null; then
         # Check if threat intelligence provides data to behavioral analysis

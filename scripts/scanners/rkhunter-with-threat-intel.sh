@@ -1,7 +1,7 @@
 #!/bin/bash
 # RKHunter Scanner with Threat Intelligence Integration
 
-IOC_DATABASE="$SECURITY_SUITE_HOME/configs/threat_intelligence/ioc_database.db"
+IOC_DATABASE="$AEGIS_HOME/configs/threat_intelligence/ioc_database.db"
 
 echo "Starting RKHunter scan with threat intelligence integration"
 

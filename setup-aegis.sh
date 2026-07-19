@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Complete Interactive Security Suite Setup for Aegis Linux - Version 6.0
+# Complete Interactive Setup for Aegis Security Suite - Version 6.0
 # Enhanced with menu-driven installation, comprehensive dependency checking,
 # component installation functions, configuration management, and error handling
 #
@@ -27,14 +27,33 @@ if [ -f "$SCRIPT_DIR/scripts/common-functions.sh" ]; then
     source "$SCRIPT_DIR/scripts/common-functions.sh"
 fi
 
-# Setup user environment (will set CURRENT_USER, CURRENT_HOME, SECURITY_SUITE_HOME)
+# Setup user environment (will set CURRENT_USER, CURRENT_HOME, AEGIS_HOME)
 setup_user_environment
 
 # Installation tracking
 INSTALLATION_TYPE=""
 INSTALLATION_COMPONENTS=()
+DEPLOYMENT_MODE=""
 ROLLBACK_ENABLED=true
-ERROR_LOG="$SECURITY_SUITE_HOME/logs/installation_errors.log"
+ERROR_LOG="$AEGIS_HOME/logs/installation_errors.log"
+
+# CLI flags bypass the interactive 2-choice menu: --custom for granular
+# component selection, --update to update an existing install.
+CLI_MODE=""
+for arg in "$@"; do
+    case "$arg" in
+        --custom) CLI_MODE="custom" ;;
+        --update) CLI_MODE="update" ;;
+        --help|-h)
+            echo "Usage: $0 [--custom|--update]"
+            echo ""
+            echo "  (no flags)  Interactive menu: Single Home User vs Team/Company/Network"
+            echo "  --custom    Interactively pick individual components (advanced)"
+            echo "  --update    Update an existing Aegis installation"
+            exit 0
+            ;;
+    esac
+done
 
 # Path validation function
 validate_path() {
@@ -115,8 +134,8 @@ rollback_installation() {
     systemctl --user daemon-reload 2>/dev/null || true
     
     # Remove created directories
-    if [ -d "$SECURITY_SUITE_HOME" ]; then
-        mv "$SECURITY_SUITE_HOME" "$SECURITY_SUITE_HOME.failed_$(date +%s)" 2>/dev/null || true
+    if [ -d "$AEGIS_HOME" ]; then
+        mv "$AEGIS_HOME" "$AEGIS_HOME.failed_$(date +%s)" 2>/dev/null || true
     fi
     
     echo -e "${GREEN}✅ Rollback completed${NC}"
@@ -282,120 +301,82 @@ check_security_tools_dependencies() {
 
 # Check Python dependencies for web dashboard
 check_python_dependencies() {
-    echo -e "${BLUE}🔍 Checking Python dependencies...${NC}"
+    echo -e "${BLUE}🔍 Checking Python availability...${NC}"
     echo ""
-    
+
     if ! command -v python3 &>/dev/null; then
         show_error "Python 3 is required but not installed"
         return 1
     fi
-    
-    if ! command -v pip3 &>/dev/null && ! command -v pip &>/dev/null; then
-        show_error "pip3/pip is required but not installed"
+
+    if ! python3 -m venv --help &>/dev/null; then
+        show_error "python3's venv module is required but not available (try: sudo pacman -S python)"
         return 1
     fi
-    
-    local python_deps=("flask" "sqlite3" "requests" "psutil")
-    local missing_python_deps=()
-    
-    for dep in "${python_deps[@]}"; do
-        if python3 -c "import $dep" &>/dev/null; then
-            echo -e "${GREEN}✅ Python module: $dep - Available${NC}"
-        else
-            echo -e "${YELLOW}⏳ Python module: $dep - Not installed${NC}"
-            missing_python_deps+=("$dep")
-        fi
-    done
-    
-    echo ""
-    
-    if [ ${#missing_python_deps[@]} -gt 0 ]; then
-        echo -e "${YELLOW}Missing Python modules: ${missing_python_deps[*]}${NC}"
-        read -p "Install missing Python modules? (Y/n): " -n 1 -r
-        echo ""
-        if [[ ! $REPLY =~ ^[Nn]$ ]]; then
-            show_progress "Installing Python modules"
-            if command -v pip3 &>/dev/null; then
-                pip3 install "${missing_python_deps[@]}"
-            else
-                pip install "${missing_python_deps[@]}"
-            fi
-            if [ $? -eq 0 ]; then
-                show_success "Python modules installed"
-            else
-                show_error "Failed to install Python modules"
-                return 1
-            fi
-        fi
-    fi
-    
+
+    show_success "Python 3 available"
+
+    # Flask/psutil/etc. are installed from web-dashboard/requirements.txt into
+    # a dedicated virtual environment further down in install_web_dashboard() -
+    # never system-wide. An earlier version of this check tried to `pip
+    # install` them directly onto the system Python, which fails with
+    # "externally-managed-environment" on any PEP 668 distro (Arch, Debian
+    # 12+, Ubuntu 23.04+, Fedora 38+, ...).
     return 0
 }
 
 # Menu-driven installation options
+# Ask who the install is for and set the global DEPLOYMENT_MODE (single_user
+# or team). Shared by the main menu's two choices and by --custom when it
+# picks up web-dashboard, so the question is only ever asked one way.
+ask_deployment_mode() {
+    echo ""
+    echo "Is this Aegis dashboard for a single home user, or a team/whole-system deployment?"
+    echo "  Single user: simple per-user service, no reverse proxy or firewall changes."
+    echo "  Team: dedicated service account, nginx reverse proxy, firewall rules."
+    read -p "Team/whole-system deployment? (y/N): " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        DEPLOYMENT_MODE="team"
+    else
+        DEPLOYMENT_MODE="single_user"
+    fi
+}
+
 show_installation_menu() {
     clear
     echo -e "${CYAN}================================================================${NC}"
-    echo -e "${WHITE}      🛡️ SECURITY SUITE INSTALLATION OPTIONS 🛡️${NC}"
+    echo -e "${WHITE}      🛡️ WHO IS THIS AEGIS INSTALLATION FOR? 🛡️${NC}"
     echo -e "${CYAN}================================================================${NC}"
     echo ""
-    echo -e "${GREEN}Choose your installation type:${NC}"
+    echo -e "${CYAN}1)${NC} Single Home User"
+    echo -e "   • Full feature set: scanning, dashboard, behavioral analysis,"
+    echo -e "     incident response, threat intelligence, scheduling"
+    echo -e "   • Simple install - no reverse proxy or firewall changes"
     echo ""
-    echo -e "${CYAN}1)${NC} Core Security Suite (Basic)"
-    echo -e "   • Essential security tools (ClamAV, rkhunter, chkrootkit)"
-    echo -e "   • Basic scanning scripts"
-    echo -e "   • Configuration management"
-    echo ""
-    echo -e "${CYAN}2)${NC} Complete Security Suite (Recommended)"
-    echo -e "   • All security tools including Lynis"
-    echo -e "   • Web Dashboard with Python virtual environment"
-    echo -e "   • Behavioral Analysis with service and timer"
-    echo -e "   • Incident Response System"
-    echo -e "   • Threat Intelligence Integration"
-    echo -e "   • Automated scheduling"
-    echo ""
-    echo -e "${CYAN}3)${NC} Web Dashboard Only"
-    echo -e "   • Python Flask web dashboard"
-    echo -e "   • Real-time monitoring interface"
-    echo -e "   • API endpoints for system integration"
-    echo ""
-    echo -e "${CYAN}4)${NC} Custom Installation"
-    echo -e "   • Choose individual components"
-    echo -e "   • Flexible configuration"
-    echo ""
-    echo -e "${CYAN}5)${NC} Update Existing Installation"
-    echo -e "   • Update scripts and configurations"
-    echo -e "   • Preserve existing data"
+    echo -e "${CYAN}2)${NC} Team / Company / Network"
+    echo -e "   • Same full feature set"
+    echo -e "   • Server-grade install - dedicated service account, nginx"
+    echo -e "     reverse proxy, firewall rules"
     echo ""
     echo -e "${CYAN}0)${NC} Exit"
     echo ""
-    
+    echo -e "${BLUE}(Run with --custom to pick individual components, --update to update an existing install)${NC}"
+    echo ""
+
     while true; do
-        read -p "Enter your choice (0-5): " choice
+        read -p "Enter your choice (0-2): " choice
         case $choice in
             1)
-                INSTALLATION_TYPE="core"
-                INSTALLATION_COMPONENTS=("security-tools" "basic-scripts" "config-management")
+                INSTALLATION_TYPE="complete"
+                DEPLOYMENT_MODE="single_user"
+                INSTALLATION_COMPONENTS=("security-tools" "web-dashboard" "behavioral-analysis" "incident-response" "threat-intelligence" "scheduling")
                 return 0
                 ;;
             2)
                 INSTALLATION_TYPE="complete"
+                DEPLOYMENT_MODE="team"
                 INSTALLATION_COMPONENTS=("security-tools" "web-dashboard" "behavioral-analysis" "incident-response" "threat-intelligence" "scheduling")
-                return 0
-                ;;
-            3)
-                INSTALLATION_TYPE="web-dashboard"
-                INSTALLATION_COMPONENTS=("web-dashboard")
-                return 0
-                ;;
-            4)
-                INSTALLATION_TYPE="custom"
-                show_custom_component_menu
-                return 0
-                ;;
-            5)
-                INSTALLATION_TYPE="update"
-                INSTALLATION_COMPONENTS=("update")
                 return 0
                 ;;
             0)
@@ -403,7 +384,7 @@ show_installation_menu() {
                 exit 0
                 ;;
             *)
-                echo -e "${RED}Invalid choice. Please enter 0-5.${NC}"
+                echo -e "${RED}Invalid choice. Please enter 0, 1, or 2.${NC}"
                 ;;
         esac
     done
@@ -449,8 +430,14 @@ show_custom_component_menu() {
         echo -e "${RED}❌ No components selected${NC}"
         exit 1
     fi
-    
+
     echo -e "${GREEN}Selected components: ${INSTALLATION_COMPONENTS[*]}${NC}"
+
+    # Only ask deployment mode if the dashboard is actually part of this
+    # custom install - it's meaningless otherwise.
+    if [[ " ${INSTALLATION_COMPONENTS[*]} " =~ " web-dashboard " ]]; then
+        ask_deployment_mode
+    fi
 }
 
 # Component installation functions
@@ -463,16 +450,16 @@ install_security_tools() {
     check_security_tools_dependencies || return 1
     
     # Create directory structure
-    mkdir -p "$SECURITY_SUITE_HOME"/{scripts,logs,configs,backups}
-    mkdir -p "$SECURITY_SUITE_HOME/logs"/{daily,weekly,monthly,manual}
-    mkdir -p "$SECURITY_SUITE_HOME/scripts/scanners"
+    mkdir -p "$AEGIS_HOME"/{scripts,logs,configs,backups}
+    mkdir -p "$AEGIS_HOME/logs"/{daily,weekly,monthly,manual}
+    mkdir -p "$AEGIS_HOME/scripts/scanners"
     
     # Install scanner scripts
     local scanners=("clamav-scanner.sh" "rkhunter-scanner.sh")
     for scanner in "${scanners[@]}"; do
         if [ -f "$SCRIPT_DIR/scanners/$scanner" ]; then
-            cp "$SCRIPT_DIR/scanners/$scanner" "$SECURITY_SUITE_HOME/scripts/scanners/"
-            chmod +x "$SECURITY_SUITE_HOME/scripts/scanners/$scanner"
+            cp "$SCRIPT_DIR/scanners/$scanner" "$AEGIS_HOME/scripts/scanners/"
+            chmod +x "$AEGIS_HOME/scripts/scanners/$scanner"
             show_success "Installed $scanner"
         fi
     done
@@ -490,54 +477,91 @@ install_security_tools() {
 # Install web dashboard
 install_web_dashboard() {
     show_progress "Installing web dashboard component"
-    
+
+    # DEPLOYMENT_MODE is set by the top-level menu (or --custom's
+    # ask_deployment_mode call) before we get here - it decides both which
+    # service-install path runs below and what the dashboard's own Settings
+    # default to. Fall back to asking directly only if this function is
+    # somehow reached without it already set.
+    if [ -z "$DEPLOYMENT_MODE" ]; then
+        ask_deployment_mode
+    fi
+    local deployment_mode="$DEPLOYMENT_MODE"
+
     # Check Python dependencies
     check_python_dependencies || return 1
-    
-    # Create Python virtual environment
-    local venv_path="$SECURITY_SUITE_HOME/web-dashboard/venv"
-    mkdir -p "$SECURITY_SUITE_HOME/web-dashboard"
-    
-    if [ ! -d "$venv_path" ]; then
-        python3 -m venv "$venv_path"
-        show_success "Created Python virtual environment"
+
+    # Copy web dashboard files BEFORE creating the venv, and always strip
+    # any venv/ that comes along with them. A dev venv must never ship
+    # inside the source tree, but one did for real here (a years-old,
+    # root-owned venv/ sitting in web-dashboard/, left from before the
+    # project was even renamed) - it got copied on top of a freshly
+    # pip-installed target venv, silently overwriting its pip/pyvenv.cfg
+    # with stale ones and causing pip to fall through to the system Python,
+    # which then hit PEP 668's "externally-managed-environment" error.
+    mkdir -p "$AEGIS_HOME/web-dashboard"
+    if [ -d "$SCRIPT_DIR/web-dashboard" ]; then
+        cp -r "$SCRIPT_DIR/web-dashboard"/* "$AEGIS_HOME/web-dashboard/"
+        rm -rf "$AEGIS_HOME/web-dashboard/venv"
+        show_success "Copied web dashboard files"
     fi
-    
+
+    # Create the Python virtual environment fresh every time, now that
+    # nothing can land on top of it afterward.
+    local venv_path="$AEGIS_HOME/web-dashboard/venv"
+    python3 -m venv "$venv_path"
+    show_success "Created Python virtual environment"
+
     # Activate virtual environment and install requirements
     source "$venv_path/bin/activate"
-    
-    if [ -f "$SCRIPT_DIR/../web-dashboard/requirements.txt" ]; then
+
+    if [ -f "$SCRIPT_DIR/web-dashboard/requirements.txt" ]; then
         if command -v pip3 &>/dev/null; then
-            pip3 install -r "$SCRIPT_DIR/../web-dashboard/requirements.txt"
+            pip3 install -r "$SCRIPT_DIR/web-dashboard/requirements.txt"
         else
-            pip install -r "$SCRIPT_DIR/../web-dashboard/requirements.txt"
+            pip install -r "$SCRIPT_DIR/web-dashboard/requirements.txt"
         fi
         show_success "Installed Python requirements"
     else
         # Install basic requirements
         if command -v pip3 &>/dev/null; then
-            pip3 install flask sqlite3 requests psutil
+            pip3 install flask requests psutil
         else
-            pip install flask sqlite3 requests psutil
+            pip install flask requests psutil
         fi
         show_success "Installed basic Python requirements"
     fi
-    
-    # Copy web dashboard files
-    if [ -d "$SCRIPT_DIR/../web-dashboard" ]; then
-        cp -r "$SCRIPT_DIR/../web-dashboard"/* "$SECURITY_SUITE_HOME/web-dashboard/"
-        show_success "Copied web dashboard files"
+
+    # Seed the dashboard's own deployment_mode setting so Settings shows the
+    # right default from first boot (api/config.py also defaults to
+    # 'single_user' if this is never written, so this is a no-op for that case).
+    mkdir -p "$AEGIS_HOME/configs/web-dashboard"
+    python3 -c "
+import json, os
+path = os.path.join('$AEGIS_HOME', 'configs', 'web-dashboard', 'dashboard.conf')
+data = {}
+if os.path.exists(path):
+    with open(path) as f:
+        data = json.load(f)
+data['deployment_mode'] = '$deployment_mode'
+with open(path, 'w') as f:
+    json.dump(data, f, indent=2)
+" 2>/dev/null || true
+
+    if [ "$deployment_mode" = "team" ] && [ -f "$SCRIPT_DIR/web-dashboard/install-dashboard.sh" ]; then
+        show_progress "Team mode selected - running the full server-grade installer (dedicated service account, nginx, firewall)"
+        bash "$SCRIPT_DIR/web-dashboard/install-dashboard.sh"
+    else
+        # Create dashboard configuration
+        create_dashboard_config
+
+        # Install systemd service
+        install_dashboard_service
     fi
-    
-    # Create dashboard configuration
-    create_dashboard_config
-    
-    # Install systemd service
-    install_dashboard_service
-    
+
     # Create API endpoints
     create_dashboard_api
-    
+
     show_success "Web dashboard component installed"
     return 0
 }
@@ -547,19 +571,19 @@ install_behavioral_analysis() {
     show_progress "Installing behavioral analysis component"
     
     # Create behavioral analysis directories
-    mkdir -p "$SECURITY_SUITE_HOME/configs/behavioral_analysis"
-    mkdir -p "$SECURITY_SUITE_HOME/logs/behavioral"
+    mkdir -p "$AEGIS_HOME/configs/behavioral_analysis"
+    mkdir -p "$AEGIS_HOME/logs/behavioral"
     
     # Copy behavioral analysis scripts
     if [ -f "$SCRIPT_DIR/behavioral-analysis-optimized.sh" ]; then
-        cp "$SCRIPT_DIR/behavioral-analysis-optimized.sh" "$SECURITY_SUITE_HOME/scripts/"
-        chmod +x "$SECURITY_SUITE_HOME/scripts/behavioral-analysis-optimized.sh"
+        cp "$SCRIPT_DIR/behavioral-analysis-optimized.sh" "$AEGIS_HOME/scripts/"
+        chmod +x "$AEGIS_HOME/scripts/behavioral-analysis-optimized.sh"
         show_success "Installed behavioral analysis script"
     fi
 
     if [ -f "$SCRIPT_DIR/behavioral-monitor-optimized.sh" ]; then
-        cp "$SCRIPT_DIR/behavioral-monitor-optimized.sh" "$SECURITY_SUITE_HOME/scripts/"
-        chmod +x "$SECURITY_SUITE_HOME/scripts/behavioral-monitor-optimized.sh"
+        cp "$SCRIPT_DIR/behavioral-monitor-optimized.sh" "$AEGIS_HOME/scripts/"
+        chmod +x "$AEGIS_HOME/scripts/behavioral-monitor-optimized.sh"
         show_success "Installed behavioral monitor script"
     fi
     
@@ -578,14 +602,14 @@ install_incident_response() {
     show_progress "Installing incident response component"
     
     # Create incident response directories
-    mkdir -p "$SECURITY_SUITE_HOME/configs/incident_response"
-    mkdir -p "$SECURITY_SUITE_HOME/logs/incidents"
-    mkdir -p "$SECURITY_SUITE_HOME/evidence"
+    mkdir -p "$AEGIS_HOME/configs/incident_response"
+    mkdir -p "$AEGIS_HOME/logs/incidents"
+    mkdir -p "$AEGIS_HOME/evidence"
     
     # Copy incident response scripts
     if [ -f "$SCRIPT_DIR/incident-response.sh" ]; then
-        cp "$SCRIPT_DIR/incident-response.sh" "$SECURITY_SUITE_HOME/scripts/"
-        chmod +x "$SECURITY_SUITE_HOME/scripts/incident-response.sh"
+        cp "$SCRIPT_DIR/incident-response.sh" "$AEGIS_HOME/scripts/"
+        chmod +x "$AEGIS_HOME/scripts/incident-response.sh"
         show_success "Installed incident response script"
     fi
     
@@ -601,14 +625,14 @@ install_threat_intelligence() {
     show_progress "Installing threat intelligence component"
     
     # Create threat intelligence directories
-    mkdir -p "$SECURITY_SUITE_HOME/configs/threat_intelligence"
-    mkdir -p "$SECURITY_SUITE_HOME/configs/threat_intelligence/cache"
-    mkdir -p "$SECURITY_SUITE_HOME/logs/threat_intelligence"
+    mkdir -p "$AEGIS_HOME/configs/threat_intelligence"
+    mkdir -p "$AEGIS_HOME/configs/threat_intelligence/cache"
+    mkdir -p "$AEGIS_HOME/logs/threat_intelligence"
     
     # Copy threat intelligence scripts
     if [ -f "$SCRIPT_DIR/threat-intelligence-optimized.sh" ]; then
-        cp "$SCRIPT_DIR/threat-intelligence-optimized.sh" "$SECURITY_SUITE_HOME/scripts/"
-        chmod +x "$SECURITY_SUITE_HOME/scripts/threat-intelligence-optimized.sh"
+        cp "$SCRIPT_DIR/threat-intelligence-optimized.sh" "$AEGIS_HOME/scripts/"
+        chmod +x "$AEGIS_HOME/scripts/threat-intelligence-optimized.sh"
         show_success "Installed threat intelligence script"
     fi
     
@@ -637,18 +661,18 @@ install_scheduling() {
 
 # Create security configuration template
 create_security_config_template() {
-    local config_file="$SECURITY_SUITE_HOME/configs/security-config.conf"
+    local config_file="$AEGIS_HOME/configs/security-config.conf"
     
     cat > "$config_file" << EOF
-# Security Suite Configuration Template
+# Aegis Security Suite Configuration Template
 # Generated on: $SETUP_TIMESTAMP
 
 # Dynamic path configuration
-SECURITY_SUITE_HOME="$SECURITY_SUITE_HOME"
-SCRIPTS_DIR="\$SECURITY_SUITE_HOME/scripts"
-LOGS_DIR="\$SECURITY_SUITE_HOME/logs"
-CONFIGS_DIR="\$SECURITY_SUITE_HOME/configs"
-BACKUPS_DIR="\$SECURITY_SUITE_HOME/backups"
+AEGIS_HOME="$AEGIS_HOME"
+SCRIPTS_DIR="\$AEGIS_HOME/scripts"
+LOGS_DIR="\$AEGIS_HOME/logs"
+CONFIGS_DIR="\$AEGIS_HOME/configs"
+BACKUPS_DIR="\$AEGIS_HOME/backups"
 CURRENT_USER="$CURRENT_USER"
 CURRENT_HOME="$CURRENT_HOME"
 
@@ -688,7 +712,7 @@ EOF
 
 # Create dashboard configuration
 create_dashboard_config() {
-    local config_file="$SECURITY_SUITE_HOME/web-dashboard/config/dashboard.conf"
+    local config_file="$AEGIS_HOME/web-dashboard/config/dashboard.conf"
     
     mkdir -p "$(dirname "$config_file")"
     
@@ -698,12 +722,12 @@ create_dashboard_config() {
 
 [dashboard]
 host = 127.0.0.1
-port = 5000
+port = 8080
 debug = false
 secret_key = $(python3 -c "import secrets; print(secrets.token_hex(32))")
 
 [database]
-path = $SECURITY_SUITE_HOME/web-dashboard/dashboard.db
+path = $AEGIS_HOME/web-dashboard/dashboard.db
 backup_enabled = true
 backup_interval = 24
 
@@ -714,7 +738,7 @@ max_login_attempts = 5
 
 [logging]
 level = INFO
-file = $SECURITY_SUITE_HOME/logs/dashboard.log
+file = $AEGIS_HOME/logs/dashboard.log
 max_size = 10MB
 backup_count = 5
 EOF
@@ -725,7 +749,7 @@ EOF
 
 # Create behavioral analysis configuration
 create_behavioral_config() {
-    local config_file="$SECURITY_SUITE_HOME/configs/behavioral_analysis/config.conf"
+    local config_file="$AEGIS_HOME/configs/behavioral_analysis/config.conf"
     
     cat > "$config_file" << EOF
 # Behavioral Analysis Configuration
@@ -756,7 +780,7 @@ EOF
 
 # Create incident response configuration
 create_incident_response_config() {
-    local config_file="$SECURITY_SUITE_HOME/configs/incident_response/config.conf"
+    local config_file="$AEGIS_HOME/configs/incident_response/config.conf"
     
     cat > "$config_file" << EOF
 # Incident Response Configuration
@@ -773,7 +797,7 @@ auto_escalate = true
 escalation_timeout = 3600
 
 [reporting]
-template_path = "$SECURITY_SUITE_HOME/configs/incident_response/templates"
+template_path = "$AEGIS_HOME/configs/incident_response/templates"
 output_format = ["json", "html"]
 auto_generate = true
 EOF
@@ -784,7 +808,7 @@ EOF
 
 # Create threat intelligence configuration
 create_threat_intelligence_config() {
-    local config_file="$SECURITY_SUITE_HOME/configs/threat_intelligence/config.conf"
+    local config_file="$AEGIS_HOME/configs/threat_intelligence/config.conf"
     
     cat > "$config_file" << EOF
 # Threat Intelligence Configuration
@@ -832,11 +856,11 @@ After=network-online.target
 [Service]
 Type=simple
 User=$CURRENT_USER
-WorkingDirectory=$SECURITY_SUITE_HOME/web-dashboard
-ExecStart=$SECURITY_SUITE_HOME/web-dashboard/venv/bin/python app.py
+WorkingDirectory=$AEGIS_HOME/web-dashboard
+ExecStart=$AEGIS_HOME/web-dashboard/venv/bin/python app.py
 Restart=always
 RestartSec=10
-Environment=PYTHONPATH=$SECURITY_SUITE_HOME/web-dashboard
+Environment=PYTHONPATH=$AEGIS_HOME/web-dashboard
 Environment=FLASK_ENV=production
 
 [Install]
@@ -869,13 +893,13 @@ After=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=$SECURITY_SUITE_HOME/scripts/behavioral-monitor-optimized.sh
-WorkingDirectory=$SECURITY_SUITE_HOME/scripts
+ExecStart=$AEGIS_HOME/scripts/behavioral-monitor-optimized.sh
+WorkingDirectory=$AEGIS_HOME/scripts
 StandardOutput=journal
 StandardError=journal
 Environment=USER=$CURRENT_USER
 Environment=HOME=$CURRENT_HOME
-Environment=SECURITY_SUITE_HOME=$SECURITY_SUITE_HOME
+Environment=AEGIS_HOME=$AEGIS_HOME
 
 [Install]
 WantedBy=default.target
@@ -905,18 +929,18 @@ EOF
 # Create security scan scripts
 create_security_scan_scripts() {
     # Create daily scan script
-    cat > "$SECURITY_SUITE_HOME/scripts/security-daily-scan.sh" << 'EOF'
+    cat > "$AEGIS_HOME/scripts/security-daily-scan.sh" << 'EOF'
 #!/bin/bash
 # Daily Security Scan Script
 
 # Load configuration
-if [ -f "$SECURITY_SUITE_HOME/configs/security-config.conf" ]; then
-    source "$SECURITY_SUITE_HOME/configs/security-config.conf"
+if [ -f "$AEGIS_HOME/configs/security-config.conf" ]; then
+    source "$AEGIS_HOME/configs/security-config.conf"
 fi
 
 # Load notification functions
-if [ -f "$SECURITY_SUITE_HOME/scripts/notification-functions.sh" ]; then
-    source "$SECURITY_SUITE_HOME/scripts/notification-functions.sh"
+if [ -f "$AEGIS_HOME/scripts/notification-functions.sh" ]; then
+    source "$AEGIS_HOME/scripts/notification-functions.sh"
 fi
 
 # Colors
@@ -936,7 +960,7 @@ echo ""
 
 # Create log file
 timestamp=$(date +"%Y%m%d_%H%M%S")
-SCAN_LOG="$SECURITY_SUITE_HOME/logs/daily/daily_scan_${timestamp}.log"
+SCAN_LOG="$AEGIS_HOME/logs/daily/daily_scan_${timestamp}.log"
 
 echo "Daily Security Scan - $(date)" > "$SCAN_LOG"
 echo "=================================" >> "$SCAN_LOG"
@@ -967,18 +991,18 @@ echo -e "${BLUE}📂 Log saved to: $(basename "$SCAN_LOG")${NC}"
 EOF
 
     # Create weekly scan script
-    cat > "$SECURITY_SUITE_HOME/scripts/security-weekly-scan.sh" << 'EOF'
+    cat > "$AEGIS_HOME/scripts/security-weekly-scan.sh" << 'EOF'
 #!/bin/bash
 # Weekly Security Scan Script
 
 # Load configuration
-if [ -f "$SECURITY_SUITE_HOME/configs/security-config.conf" ]; then
-    source "$SECURITY_SUITE_HOME/configs/security-config.conf"
+if [ -f "$AEGIS_HOME/configs/security-config.conf" ]; then
+    source "$AEGIS_HOME/configs/security-config.conf"
 fi
 
 # Load notification functions
-if [ -f "$SECURITY_SUITE_HOME/scripts/notification-functions.sh" ]; then
-    source "$SECURITY_SUITE_HOME/scripts/notification-functions.sh"
+if [ -f "$AEGIS_HOME/scripts/notification-functions.sh" ]; then
+    source "$AEGIS_HOME/scripts/notification-functions.sh"
 fi
 
 # Colors
@@ -998,7 +1022,7 @@ echo ""
 
 # Create log file
 timestamp=$(date +"%Y%m%d_%H%M%S")
-SCAN_LOG="$SECURITY_SUITE_HOME/logs/weekly/weekly_scan_${timestamp}.log"
+SCAN_LOG="$AEGIS_HOME/logs/weekly/weekly_scan_${timestamp}.log"
 
 echo "Weekly Security Scan - $(date)" > "$SCAN_LOG"
 echo "================================" >> "$SCAN_LOG"
@@ -1024,18 +1048,18 @@ echo -e "${BLUE}📂 Log saved to: $(basename "$SCAN_LOG")${NC}"
 EOF
 
     # Create monthly scan script
-    cat > "$SECURITY_SUITE_HOME/scripts/security-monthly-scan.sh" << 'EOF'
+    cat > "$AEGIS_HOME/scripts/security-monthly-scan.sh" << 'EOF'
 #!/bin/bash
 # Monthly Security Scan Script
 
 # Load configuration
-if [ -f "$SECURITY_SUITE_HOME/configs/security-config.conf" ]; then
-    source "$SECURITY_SUITE_HOME/configs/security-config.conf"
+if [ -f "$AEGIS_HOME/configs/security-config.conf" ]; then
+    source "$AEGIS_HOME/configs/security-config.conf"
 fi
 
 # Load notification functions
-if [ -f "$SECURITY_SUITE_HOME/scripts/notification-functions.sh" ]; then
-    source "$SECURITY_SUITE_HOME/scripts/notification-functions.sh"
+if [ -f "$AEGIS_HOME/scripts/notification-functions.sh" ]; then
+    source "$AEGIS_HOME/scripts/notification-functions.sh"
 fi
 
 # Colors
@@ -1055,7 +1079,7 @@ echo ""
 
 # Create log file
 timestamp=$(date +"%Y%m%d_%H%M%S")
-SCAN_LOG="$SECURITY_SUITE_HOME/logs/monthly/monthly_scan_${timestamp}.log"
+SCAN_LOG="$AEGIS_HOME/logs/monthly/monthly_scan_${timestamp}.log"
 
 echo "Monthly Security Scan - $(date)" > "$SCAN_LOG"
 echo "=================================" >> "$SCAN_LOG"
@@ -1094,9 +1118,9 @@ echo -e "${BLUE}📂 Log saved to: $(basename "$SCAN_LOG")${NC}"
 EOF
 
     # Make scripts executable
-    chmod +x "$SECURITY_SUITE_HOME/scripts/security-daily-scan.sh"
-    chmod +x "$SECURITY_SUITE_HOME/scripts/security-weekly-scan.sh"
-    chmod +x "$SECURITY_SUITE_HOME/scripts/security-monthly-scan.sh"
+    chmod +x "$AEGIS_HOME/scripts/security-daily-scan.sh"
+    chmod +x "$AEGIS_HOME/scripts/security-weekly-scan.sh"
+    chmod +x "$AEGIS_HOME/scripts/security-monthly-scan.sh"
     
     show_success "Created security scan scripts"
 }
@@ -1155,13 +1179,13 @@ Description=${scan_type^} Security Scan
 
 [Service]
 Type=oneshot
-ExecStart=$SECURITY_SUITE_HOME/scripts/security-${scan_type}-scan.sh
-WorkingDirectory=$SECURITY_SUITE_HOME/scripts
+ExecStart=$AEGIS_HOME/scripts/security-${scan_type}-scan.sh
+WorkingDirectory=$AEGIS_HOME/scripts
 StandardOutput=journal
 StandardError=journal
 Environment=USER=$CURRENT_USER
 Environment=HOME=$CURRENT_HOME
-Environment=SECURITY_SUITE_HOME=$SECURITY_SUITE_HOME
+Environment=AEGIS_HOME=$AEGIS_HOME
 EOF
     done
 
@@ -1188,7 +1212,7 @@ enable_systemd_timers() {
 
 # Create dashboard API endpoints
 create_dashboard_api() {
-    local api_dir="$SECURITY_SUITE_HOME/web-dashboard/api"
+    local api_dir="$AEGIS_HOME/web-dashboard/api"
     mkdir -p "$api_dir"
     
     # Create system API
@@ -1257,7 +1281,7 @@ incidents_bp = Blueprint('incidents', __name__)
 def get_incidents():
     """Get security incidents"""
     try:
-        incidents_dir = os.environ.get('SECURITY_SUITE_HOME', os.path.expanduser('~/security-suite'))
+        incidents_dir = os.environ.get('AEGIS_HOME', os.path.expanduser('~/aegis-security-suite'))
         incidents_file = os.path.join(incidents_dir, 'logs', 'incidents.json')
         
         incidents = []
@@ -1275,7 +1299,7 @@ def create_incident():
     try:
         incident_data = request.get_json()
         
-        incidents_dir = os.environ.get('SECURITY_SUITE_HOME', os.path.expanduser('~/security-suite'))
+        incidents_dir = os.environ.get('AEGIS_HOME', os.path.expanduser('~/aegis-security-suite'))
         incidents_file = os.path.join(incidents_dir, 'logs', 'incidents.json')
         
         incidents = []
@@ -1308,14 +1332,14 @@ EOF
 validate_configuration() {
     show_progress "Validating configuration"
     
-    local config_file="$SECURITY_SUITE_HOME/configs/security-config.conf"
+    local config_file="$AEGIS_HOME/configs/security-config.conf"
     local validation_errors=()
     
     if [ ! -f "$config_file" ]; then
         validation_errors+=("Configuration file not found: $config_file")
     else
         # Check required configuration variables
-        local required_vars=("SECURITY_SUITE_HOME" "SCRIPTS_DIR" "LOGS_DIR")
+        local required_vars=("AEGIS_HOME" "SCRIPTS_DIR" "LOGS_DIR")
         for var in "${required_vars[@]}"; do
             if ! grep -q "^$var=" "$config_file"; then
                 validation_errors+=("Missing required variable: $var")
@@ -1338,18 +1362,45 @@ validate_configuration() {
 # Set proper file permissions
 set_file_permissions() {
     show_progress "Setting file permissions"
-    
-    # Set directory permissions
-    find "$SECURITY_SUITE_HOME" -type d -exec chmod 755 {} \;
-    
-    # Set file permissions
-    find "$SECURITY_SUITE_HOME" -type f -name "*.sh" -exec chmod 755 {} \;
-    find "$SECURITY_SUITE_HOME" -type f -name "*.conf" -exec chmod 644 {} \;
-    find "$SECURITY_SUITE_HOME" -type f -name "*.py" -exec chmod 644 {} \;
-    
-    # Set special permissions for sensitive files
-    chmod 600 "$SECURITY_SUITE_HOME/configs/"* 2>/dev/null || true
-    
+
+    # Never run a recursive chmod over a directory that isn't actually the
+    # suite. A path-resolution bug once set AEGIS_HOME to the repo's
+    # parent directory and this function chmod'ed every sibling project in it.
+    # configs/ and scripts/ are unconditionally created early in the main
+    # install flow, before any component installs - unlike setup-aegis.sh or
+    # common-functions.sh, which this installer never copies into the
+    # target directory, so those can't be used as install markers here.
+    if [ ! -d "$AEGIS_HOME/configs" ] && [ ! -d "$AEGIS_HOME/scripts" ]; then
+        show_error "Refusing to set permissions: $AEGIS_HOME does not look like an Aegis installation"
+        return 1
+    fi
+
+    # Some mounts (NTFS/exFAT) don't support chmod at all - probe once and
+    # skip the pass instead of spamming an error per file.
+    if ! chmod u+rw "$AEGIS_HOME" 2>/dev/null; then
+        show_warning "Filesystem does not support chmod ($AEGIS_HOME) - skipping permission pass"
+        return 0
+    fi
+
+    # Scope to the suite's own directories and skip Python virtualenvs -
+    # their pip internals are not ours to re-permission.
+    find "$AEGIS_HOME" -not -path '*/venv/*' -not -path '*/.venv/*' -not -path '*/.git/*' \
+        -type d -exec chmod 755 {} + 2>/dev/null || true
+    find "$AEGIS_HOME" -not -path '*/venv/*' -not -path '*/.venv/*' -not -path '*/.git/*' \
+        -type f -name "*.sh" -exec chmod 755 {} + 2>/dev/null || true
+    find "$AEGIS_HOME" -not -path '*/venv/*' -not -path '*/.venv/*' -not -path '*/.git/*' \
+        -type f \( -name "*.conf" -o -name "*.py" \) -exec chmod 644 {} + 2>/dev/null || true
+
+    # Set restrictive permissions on configs/ contents (may contain secrets).
+    # Must NOT blindly chmod 600 everything in "configs/*": a directory
+    # without the execute bit can't be entered, listed, or written into -
+    # even by its own owner - which broke every per-component config
+    # subdirectory (behavioral_analysis, incident_response,
+    # threat_intelligence, web-dashboard) the first time this line ran,
+    # since the glob matches directories along with files.
+    find "$AEGIS_HOME/configs" -maxdepth 1 -type f -exec chmod 600 {} + 2>/dev/null || true
+    find "$AEGIS_HOME/configs" -maxdepth 1 -type d -exec chmod 700 {} + 2>/dev/null || true
+
     show_success "File permissions set"
 }
 
@@ -1406,7 +1457,7 @@ show_component_help() {
 # Main installation function
 main_installation() {
     echo -e "${CYAN}================================================================${NC}"
-    echo -e "${WHITE}      🛡️ SECURITY SUITE V6.0 SETUP 🛡️${NC}"
+    echo -e "${WHITE}      🛡️ AEGIS SECURITY SUITE V6.0 SETUP 🛡️${NC}"
     echo -e "${CYAN}================================================================${NC}"
     echo -e "${YELLOW}Enhanced with menu-driven installation and comprehensive features!${NC}"
     echo -e "${CYAN}================================================================${NC}"
@@ -1415,9 +1466,21 @@ main_installation() {
     echo -e "${BLUE}Setup date: ${SETUP_DATE}${NC}"
     echo ""
     
-    # Show installation menu
-    show_installation_menu
-    
+    # CLI flags bypass the interactive 2-choice menu entirely
+    case "$CLI_MODE" in
+        custom)
+            INSTALLATION_TYPE="custom"
+            show_custom_component_menu
+            ;;
+        update)
+            INSTALLATION_TYPE="update"
+            INSTALLATION_COMPONENTS=("update")
+            ;;
+        *)
+            show_installation_menu
+            ;;
+    esac
+
     echo -e "${GREEN}Selected installation type: ${INSTALLATION_TYPE}${NC}"
     echo -e "${GREEN}Components to install: ${INSTALLATION_COMPONENTS[*]}${NC}"
     echo ""
@@ -1443,11 +1506,11 @@ main_installation() {
     
     # Create base directory structure
     show_progress "Creating base directory structure"
-    mkdir -p "$SECURITY_SUITE_HOME"
-    mkdir -p "$SECURITY_SUITE_HOME/logs"
-    mkdir -p "$SECURITY_SUITE_HOME/configs"
-    mkdir -p "$SECURITY_SUITE_HOME/scripts"
-    mkdir -p "$SECURITY_SUITE_HOME/backups"
+    mkdir -p "$AEGIS_HOME"
+    mkdir -p "$AEGIS_HOME/logs"
+    mkdir -p "$AEGIS_HOME/configs"
+    mkdir -p "$AEGIS_HOME/scripts"
+    mkdir -p "$AEGIS_HOME/backups"
     
     # Install selected components
     for component in "${INSTALLATION_COMPONENTS[@]}"; do
@@ -1504,8 +1567,6 @@ main_installation() {
                 }
                 ;;
         esac
-        
-        INSTALLATION_COMPONENTS+=("$component")
     done
     
     # Validate configuration
@@ -1528,7 +1589,7 @@ main_installation() {
     echo ""
     echo -e "${GREEN}✅ Installation type: ${INSTALLATION_TYPE}${NC}"
     echo -e "${GREEN}✅ Components installed: ${INSTALLATION_COMPONENTS[*]}${NC}"
-    echo -e "${GREEN}✅ Installation directory: ${SECURITY_SUITE_HOME}${NC}"
+    echo -e "${GREEN}✅ Installation directory: ${AEGIS_HOME}${NC}"
     echo ""
     
     # Show next steps based on installed components
@@ -1536,29 +1597,29 @@ main_installation() {
     
     if [[ " ${INSTALLATION_COMPONENTS[*]} " =~ " web-dashboard " ]]; then
         echo -e "${GREEN}• Start web dashboard: ${WHITE}systemctl --user start aegis-dashboard.service${NC}"
-        echo -e "${GREEN}• Access dashboard: ${WHITE}http://localhost:5000${NC}"
+        echo -e "${GREEN}• Access dashboard: ${WHITE}http://localhost:8080${NC}"
     fi
     
     if [[ " ${INSTALLATION_COMPONENTS[*]} " =~ " scheduling " ]]; then
         echo -e "${GREEN}• View timers: ${WHITE}systemctl --user list-timers | grep security${NC}"
     fi
     
-    echo -e "${GREEN}• Run manual scan: ${WHITE}cd $SECURITY_SUITE_HOME/scripts && ./security-daily-scan.sh${NC}"
-    echo -e "${GREEN}• View logs: ${WHITE}ls -la $SECURITY_SUITE_HOME/logs/${NC}"
+    echo -e "${GREEN}• Run manual scan: ${WHITE}cd $AEGIS_HOME/scripts && ./security-daily-scan.sh${NC}"
+    echo -e "${GREEN}• View logs: ${WHITE}ls -la $AEGIS_HOME/logs/${NC}"
     echo ""
     
     echo -e "${CYAN}================================================================${NC}"
     
     # Mark installation completion
-    mkdir -p "$SECURITY_SUITE_HOME/logs/manual"
-    echo "$(date): Installation V6.0 completed successfully - Type: $INSTALLATION_TYPE - Components: ${INSTALLATION_COMPONENTS[*]}" >> "$SECURITY_SUITE_HOME/logs/manual/setup.log"
+    mkdir -p "$AEGIS_HOME/logs/manual"
+    echo "$(date): Installation V6.0 completed successfully - Type: $INSTALLATION_TYPE - Components: ${INSTALLATION_COMPONENTS[*]}" >> "$AEGIS_HOME/logs/manual/setup.log"
     
     return 0
 }
 
 # Create notification functions
 create_notification_functions() {
-    cat > "$SECURITY_SUITE_HOME/scripts/notification-functions.sh" << 'EOF'
+    cat > "$AEGIS_HOME/scripts/notification-functions.sh" << 'EOF'
 #!/bin/bash
 # Notification Support Functions
 # Version: 6.0 - Enhanced setup
@@ -1586,7 +1647,7 @@ export -f check_notification_support
 export -f send_notification
 EOF
 
-    chmod +x "$SECURITY_SUITE_HOME/scripts/notification-functions.sh"
+    chmod +x "$AEGIS_HOME/scripts/notification-functions.sh"
     show_success "Created notification functions"
 }
 
@@ -1594,25 +1655,25 @@ EOF
 update_existing_installation() {
     show_progress "Updating existing installation"
     
-    if [ ! -d "$SECURITY_SUITE_HOME" ]; then
+    if [ ! -d "$AEGIS_HOME" ]; then
         show_error "No existing installation found"
         return 1
     fi
     
     # Backup existing configuration
-    local backup_dir="$SECURITY_SUITE_HOME.backup.$(date +%s)"
-    cp -r "$SECURITY_SUITE_HOME" "$backup_dir"
+    local backup_dir="$AEGIS_HOME.backup.$(date +%s)"
+    cp -r "$AEGIS_HOME" "$backup_dir"
     show_success "Created backup: $backup_dir"
     
     # Update scripts
     if [ -d "$SCRIPT_DIR" ]; then
-        cp -r "$SCRIPT_DIR"/* "$SECURITY_SUITE_HOME/scripts/" 2>/dev/null || true
+        cp -r "$SCRIPT_DIR"/* "$AEGIS_HOME/scripts/" 2>/dev/null || true
         show_success "Updated scripts"
     fi
     
     # Update configurations
     if [ -d "$SCRIPT_DIR/../configs" ]; then
-        cp -r "$SCRIPT_DIR/../configs"/* "$SECURITY_SUITE_HOME/configs/" 2>/dev/null || true
+        cp -r "$SCRIPT_DIR/../configs"/* "$AEGIS_HOME/configs/" 2>/dev/null || true
         show_success "Updated configurations"
     fi
     

@@ -6,12 +6,12 @@
 SCRIPT_DIR="$(dirname "$0")"
 source "$SCRIPT_DIR/common-functions.sh"
 
-# Setup user environment (will set SECURITY_SUITE_HOME and other variables)
+# Setup user environment (will set AEGIS_HOME and other variables)
 setup_user_environment
 
 # Load configuration
-if [ -f "$SECURITY_SUITE_HOME/configs/security-config.conf" ]; then
-    source "$SECURITY_SUITE_HOME/configs/security-config.conf"
+if [ -f "$AEGIS_HOME/configs/security-config.conf" ]; then
+    source "$AEGIS_HOME/configs/security-config.conf"
 fi
 
 # Load behavioral analysis if enabled
@@ -105,7 +105,7 @@ if [ "$BEHAVIORAL_ANALYSIS_ENABLED" = "true" ]; then
         log_warning "🚨 HIGH BEHAVIORAL THREAT SCORE DETECTED: $current_threat_score (threshold: $BEHAVIORAL_THREAT_SCORE_THRESHOLD)"
         
         # Get recent anomalies for incident details
-        recent_anomalies=$(sqlite3 "$SECURITY_SUITE_HOME/configs/behavioral_analysis/behavioral_data.db" << EOF
+        recent_anomalies=$(sqlite3 "$AEGIS_HOME/configs/behavioral_analysis/behavioral_data.db" << EOF
 SELECT GROUP_CONCAT(anomaly_type || ':' || metric_name || ' (' || severity || ')', ', ')
 FROM anomaly_events
 WHERE timestamp > datetime('now', '-10 minutes') AND resolved = 0 AND false_positive = 0

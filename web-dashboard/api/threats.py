@@ -22,7 +22,7 @@ from auth import require_auth, require_role
 threats_bp = Blueprint('threats', __name__, url_prefix='/api/threats')
 
 # Database paths
-THREAT_DB_PATH = os.path.join(os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite'), 
+THREAT_DB_PATH = os.path.join(os.environ.get('AEGIS_HOME', '/opt/aegis-security-suite'), 
                               'configs', 'threat_intelligence', 'ioc_database.db')
 
 def get_ioc_database_stats():
@@ -742,7 +742,7 @@ def get_feeds():
 def update_feeds():
     """Update threat feeds"""
     try:
-        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite')
+        security_home = os.environ.get('AEGIS_HOME', '/opt/aegis-security-suite')
         threat_script = os.path.join(security_home, 'scripts', 'threat-intelligence-v2.sh')
         
         if not os.path.exists(threat_script):
@@ -796,7 +796,7 @@ def scan_ioc():
         data = request.get_json()
         scan_type = data.get('type', 'quick')
         
-        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite')
+        security_home = os.environ.get('AEGIS_HOME', '/opt/aegis-security-suite')
         threat_script = os.path.join(security_home, 'scripts', 'threat-intelligence-v2.sh')
         
         if not os.path.exists(threat_script):
@@ -933,7 +933,7 @@ def get_chart_data():
 @require_role('analyst')
 def update_feeds_alt():
     try:
-        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite')
+        security_home = os.environ.get('AEGIS_HOME', '/opt/aegis-security-suite')
         script = os.path.join(security_home, 'scripts', 'threat-intelligence-v2.sh')
         if os.path.exists(script):
             subprocess.Popen(['sudo', script, '--update'])
@@ -999,7 +999,7 @@ def export_iocs_alt():
 @require_role('analyst')
 def scan_iocs_alt():
     try:
-        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite')
+        security_home = os.environ.get('AEGIS_HOME', '/opt/aegis-security-suite')
         script = os.path.join(security_home, 'scripts', 'threat-intelligence-v2.sh')
         matches = 0
         if os.path.exists(script):
@@ -1053,7 +1053,7 @@ def toggle_feed(feed_id):
 @require_role('analyst')
 def update_ioc_db():
     try:
-        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite')
+        security_home = os.environ.get('AEGIS_HOME', '/opt/aegis-security-suite')
         script = os.path.join(security_home, 'scripts', 'threat-intelligence-v2.sh')
         if os.path.exists(script):
             subprocess.Popen(['sudo', script, '--update-db'])

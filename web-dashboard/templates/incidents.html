@@ -9,7 +9,7 @@
 <!-- Incident Management Overview -->
 <div class="incident-overview-section">
     <div class="row">
-        <div class="col-xl-3 col-md-6 mb-4">
+        <div class="{{ 'col-xl-3' if not is_single_user_mode() else 'col-xl-4' }} col-md-6 mb-4">
             <div class="status-card primary fade-in">
                 <div class="status-icon primary">
                     <i class="fas fa-ambulance"></i>
@@ -27,7 +27,7 @@
             </div>
         </div>
 
-        <div class="col-xl-3 col-md-6 mb-4">
+        <div class="{{ 'col-xl-3' if not is_single_user_mode() else 'col-xl-4' }} col-md-6 mb-4">
             <div class="status-card success fade-in" style="animation-delay: 0.1s">
                 <div class="status-icon success">
                     <i class="fas fa-check-circle"></i>
@@ -45,7 +45,7 @@
             </div>
         </div>
 
-        <div class="col-xl-3 col-md-6 mb-4">
+        <div class="{{ 'col-xl-3' if not is_single_user_mode() else 'col-xl-4' }} col-md-6 mb-4">
             <div class="status-card warning fade-in" style="animation-delay: 0.2s">
                 <div class="status-icon warning">
                     <i class="fas fa-clock"></i>
@@ -63,6 +63,7 @@
             </div>
         </div>
 
+        {% if not is_single_user_mode() %}
         <div class="col-xl-3 col-md-6 mb-4">
             <div class="status-card info fade-in" style="animation-delay: 0.3s">
                 <div class="status-icon info">
@@ -80,6 +81,7 @@
                 </div>
             </div>
         </div>
+        {% endif %}
     </div>
 </div>
 
@@ -171,7 +173,7 @@
 <div class="incidents-management-section">
     <div class="row">
         <!-- Active Incidents List -->
-        <div class="col-lg-8 mb-4">
+        <div class="{{ 'col-lg-8' if not is_single_user_mode() else 'col-lg-12' }} mb-4">
             <div class="card fade-in">
                 <div class="card-header">
                     <h3 class="card-title">Active Incidents</h3>
@@ -242,7 +244,8 @@
             </div>
         </div>
 
-        <!-- Incident Response Team -->
+        {% if not is_single_user_mode() %}
+        <!-- Incident Response Team (team deployment mode only) -->
         <div class="col-lg-4 mb-4">
             <div class="card fade-in">
                 <div class="card-header">
@@ -254,86 +257,16 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <div class="team-status-grid">
-                        <div class="team-member">
-                            <div class="member-avatar">
-                                <i class="fas fa-user"></i>
-                            </div>
-                            <div class="member-info">
-                                <h5>John Smith</h5>
-                                <p>Lead Analyst</p>
-                                <div class="member-status online">
-                                    <span class="status-indicator-dot"></span>
-                                    Available
-                                </div>
-                            </div>
-                            <div class="member-actions">
-                                <button class="btn btn-sm btn-outline" onclick="assignIncident('john')">
-                                    <i class="fas fa-plus"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="team-member">
-                            <div class="member-avatar">
-                                <i class="fas fa-user"></i>
-                            </div>
-                            <div class="member-info">
-                                <h5>Sarah Johnson</h5>
-                                <p>Security Analyst</p>
-                                <div class="member-status busy">
-                                    <span class="status-indicator-dot"></span>
-                                    Busy
-                                </div>
-                            </div>
-                            <div class="member-actions">
-                                <button class="btn btn-sm btn-outline" onclick="assignIncident('sarah')">
-                                    <i class="fas fa-plus"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="team-member">
-                            <div class="member-avatar">
-                                <i class="fas fa-user"></i>
-                            </div>
-                            <div class="member-info">
-                                <h5>Mike Chen</h5>
-                                <p>Incident Responder</p>
-                                <div class="member-status offline">
-                                    <span class="status-indicator-dot"></span>
-                                    Offline
-                                </div>
-                            </div>
-                            <div class="member-actions">
-                                <button class="btn btn-sm btn-outline" onclick="assignIncident('mike')">
-                                    <i class="fas fa-plus"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="team-member">
-                            <div class="member-avatar">
-                                <i class="fas fa-user"></i>
-                            </div>
-                            <div class="member-info">
-                                <h5>Lisa Wang</h5>
-                                <p>Threat Hunter</p>
-                                <div class="member-status online">
-                                    <span class="status-indicator-dot"></span>
-                                    Available
-                                </div>
-                            </div>
-                            <div class="member-actions">
-                                <button class="btn btn-sm btn-outline" onclick="assignIncident('lisa')">
-                                    <i class="fas fa-plus"></i>
-                                </button>
-                            </div>
+                    <div class="team-status-grid" id="team-status-grid">
+                        <div class="text-center">
+                            <div class="loading-spinner"></div>
+                            <p>Loading team status...</p>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+        {% endif %}
     </div>
 </div>
 
@@ -359,6 +292,7 @@
                     </div>
                 </button>
 
+                {% if not is_single_user_mode() %}
                 <button class="quick-action-btn" onclick="bulkAssign()">
                     <div class="action-icon success">
                         <i class="fas fa-users"></i>
@@ -384,6 +318,7 @@
                         <i class="fas fa-arrow-right"></i>
                     </div>
                 </button>
+                {% endif %}
 
                 <button class="quick-action-btn" onclick="generateReport()">
                     <div class="action-icon info">
@@ -469,16 +404,14 @@
                                 <option value="other">Other</option>
                             </select>
                         </div>
+                        {% if not is_single_user_mode() %}
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Assigned To</label>
                             <select class="form-select" id="incident-assignee">
                                 <option value="">Unassigned</option>
-                                <option value="john">John Smith</option>
-                                <option value="sarah">Sarah Johnson</option>
-                                <option value="mike">Mike Chen</option>
-                                <option value="lisa">Lisa Wang</option>
                             </select>
                         </div>
+                        {% endif %}
                     </div>
 
                     <div class="mb-3">
@@ -752,9 +685,10 @@ function updateIncidentsTable(incidents) {
                     <button class="btn btn-sm btn-outline" onclick="editIncident('${incident.incident_id}')" title="Edit">
                         <i class="fas fa-edit"></i>
                     </button>
+                    ${!isSingleUserMode() ? `
                     <button class="btn btn-sm btn-outline" onclick="assignIncident('${incident.incident_id}')" title="Assign">
                         <i class="fas fa-user-plus"></i>
-                    </button>
+                    </button>` : ''}
                 </div>
             </td>
         `;
@@ -768,8 +702,15 @@ function updateIncidentsTable(incidents) {
 
 function updateTeamStatus(teamStatus) {
     const teamGrid = document.querySelector('.team-status-grid');
-    if (!teamGrid || !teamStatus) return;
-    
+    if (!teamStatus) return;
+
+    const assigneeSelect = document.getElementById('incident-assignee');
+    if (assigneeSelect) {
+        assigneeSelect.innerHTML = '<option value="">Unassigned</option>' +
+            teamStatus.map(m => `<option value="${m.name}">${m.name}</option>`).join('');
+    }
+
+    if (!teamGrid) return;
     teamGrid.innerHTML = '';
     teamStatus.forEach(member => {
         const statusClass = member.status === 'online' ? 'online' : member.status === 'busy' ? 'busy' : 'offline';

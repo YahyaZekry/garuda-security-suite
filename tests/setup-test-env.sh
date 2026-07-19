@@ -476,7 +476,7 @@ export PATH="$PROJECT_ROOT/tests/mock-bin:\$PATH"
 
 # Test settings
 export NOTIFICATIONS_ENABLED=false
-export SECURITY_SUITE_HOME="$PROJECT_ROOT/tests/security-suite"
+export AEGIS_HOME="$PROJECT_ROOT/tests/aegis-security-suite"
 export CURRENT_USER="testuser"
 export CURRENT_HOME="$HOME"
 EOF

@@ -146,10 +146,10 @@ chmod 755 $HOME
 ##### Solution 2: Create Installation Directory Manually
 ```bash
 # Create security suite directory
-mkdir -p ~/security-suite
+mkdir -p ~/aegis-security-suite
 
 # Set correct permissions
-chmod 755 ~/security-suite
+chmod 755 ~/aegis-security-suite
 
 # Try installation again
 ./setup-aegis.sh
@@ -180,7 +180,7 @@ df -h $HOME
 ##### Solution 1: Check Service Status
 ```bash
 # Check all security suite services
-cd $SECURITY_SUITE_HOME
+cd $AEGIS_HOME
 ./scripts/start-aegis.sh status
 
 # Check individual service status
@@ -242,13 +242,13 @@ cat ~/.config/systemd/user/security-weekly-scan.service
 cat ~/.config/systemd/user/security-monthly-scan.service
 
 # Verify paths in service files
-ls -la ~/security-suite/src/core/scripts/security-daily-scan.sh
+ls -la ~/aegis-security-suite/src/core/scripts/security-daily-scan.sh
 ```
 
 ##### Solution 2: Test Scripts Manually
 ```bash
 # Test scripts manually to identify issues
-cd $SECURITY_SUITE_HOME/scripts
+cd $AEGIS_HOME/scripts
 ./security-daily-scan.sh
 
 # Check for errors in script execution
@@ -257,14 +257,14 @@ bash -x ./security-daily-scan.sh
 
 ##### Solution 3: Check Environment Variables
 ```bash
-# Check if SECURITY_SUITE_HOME is set
-echo $SECURITY_SUITE_HOME
+# Check if AEGIS_HOME is set
+echo $AEGIS_HOME
 
 # If not set, set it manually
-export SECURITY_SUITE_HOME="$HOME/security-suite"
+export AEGIS_HOME="$HOME/aegis-security-suite"
 
 # Add to .bashrc for persistence
-echo 'export SECURITY_SUITE_HOME="$HOME/security-suite"' >> ~/.bashrc
+echo 'export AEGIS_HOME="$HOME/aegis-security-suite"' >> ~/.bashrc
 source ~/.bashrc
 ```
 
@@ -330,19 +330,19 @@ sudo loginctl enable-linger $(whoami)
 ##### Solution 1: Check Database Files
 ```bash
 # Check if database files exist
-ls -la ~/security-suite/configs/behavioral_analysis/behavioral_data.db
-ls -la ~/security-suite/configs/incident_response/incidents.db
-ls -la ~/security-suite/configs/threat_intelligence/ioc_database.db
-ls -la ~/security-suite/web-dashboard/auth.db
+ls -la ~/aegis-security-suite/configs/behavioral_analysis/behavioral_data.db
+ls -la ~/aegis-security-suite/configs/incident_response/incidents.db
+ls -la ~/aegis-security-suite/configs/threat_intelligence/ioc_database.db
+ls -la ~/aegis-security-suite/web-dashboard/auth.db
 
 # Check database permissions
-ls -la ~/security-suite/configs/*/
+ls -la ~/aegis-security-suite/configs/*/
 ```
 
 ##### Solution 2: Initialize Databases
 ```bash
 # Initialize behavioral analysis database
-cd $SECURITY_SUITE_HOME/scripts
+cd $AEGIS_HOME/scripts
 ./behavioral-analysis.sh init
 
 # Initialize incident response database
@@ -352,7 +352,7 @@ cd $SECURITY_SUITE_HOME/scripts
 ./threat-intelligence.sh init
 
 # Initialize web dashboard authentication
-cd $SECURITY_SUITE_HOME/web-dashboard
+cd $AEGIS_HOME/web-dashboard
 python3 -c "
 from auth import init_database
 init_database()
@@ -363,17 +363,17 @@ print('Auth database initialized')
 ##### Solution 3: Create Missing Directories
 ```bash
 # Create missing directories
-mkdir -p ~/security-suite/configs/behavioral_analysis
-mkdir -p ~/security-suite/configs/incident_response
-mkdir -p ~/security-suite/configs/threat_intelligence
-mkdir -p ~/security-suite/src/dashboard
+mkdir -p ~/aegis-security-suite/configs/behavioral_analysis
+mkdir -p ~/aegis-security-suite/configs/incident_response
+mkdir -p ~/aegis-security-suite/configs/threat_intelligence
+mkdir -p ~/aegis-security-suite/src/dashboard
 
 # Set correct permissions
-chmod 755 ~/security-suite/configs
-chmod 755 ~/security-suite/configs/behavioral_analysis
-chmod 755 ~/security-suite/configs/incident_response
-chmod 755 ~/security-suite/configs/threat_intelligence
-chmod 755 ~/security-suite/src/dashboard
+chmod 755 ~/aegis-security-suite/configs
+chmod 755 ~/aegis-security-suite/configs/behavioral_analysis
+chmod 755 ~/aegis-security-suite/configs/incident_response
+chmod 755 ~/aegis-security-suite/configs/threat_intelligence
+chmod 755 ~/aegis-security-suite/src/dashboard
 ```
 
 ### Problem: Database Permission Errors
@@ -388,30 +388,30 @@ chmod 755 ~/security-suite/src/dashboard
 ##### Solution 1: Check Database Permissions
 ```bash
 # Check current database permissions
-ls -la ~/security-suite/configs/*/*.db
+ls -la ~/aegis-security-suite/configs/*/*.db
 
 # Fix database permissions
-chmod 600 ~/security-suite/configs/*/*.db
-chmod 700 ~/security-suite/configs/*/
+chmod 600 ~/aegis-security-suite/configs/*/*.db
+chmod 700 ~/aegis-security-suite/configs/*/
 ```
 
 ##### Solution 2: Check Database Ownership
 ```bash
 # Check database ownership
-ls -la ~/security-suite/configs/*/*.db
+ls -la ~/aegis-security-suite/configs/*/*.db
 
 # If ownership is incorrect, fix it
-sudo chown $(whoami):$(whoami) ~/security-suite/configs/*/*.db
-sudo chown -R $(whoami):$(whoami) ~/security-suite/configs/
+sudo chown $(whoami):$(whoami) ~/aegis-security-suite/configs/*/*.db
+sudo chown -R $(whoami):$(whoami) ~/aegis-security-suite/configs/
 ```
 
 ##### Solution 3: Remove Database Locks
 ```bash
 # Check for database lock files
-ls -la ~/security-suite/configs/*/*.db-journal
+ls -la ~/aegis-security-suite/configs/*/*.db-journal
 
 # Remove lock files if they exist
-rm -f ~/security-suite/configs/*/*.db-journal
+rm -f ~/aegis-security-suite/configs/*/*.db-journal
 ```
 
 ### Problem: Database Corruption
@@ -426,23 +426,23 @@ rm -f ~/security-suite/configs/*/*.db-journal
 ##### Solution 1: Check Database Integrity
 ```bash
 # Check behavioral analysis database
-sqlite3 $HOME/security-suite/configs/behavioral_analysis/behavioral_data.db "PRAGMA integrity_check;"
+sqlite3 $HOME/aegis-security-suite/configs/behavioral_analysis/behavioral_data.db "PRAGMA integrity_check;"
 
 # Check incident response database
-sqlite3 $HOME/security-suite/configs/incident_response/incidents.db "PRAGMA integrity_check;"
+sqlite3 $HOME/aegis-security-suite/configs/incident_response/incidents.db "PRAGMA integrity_check;"
 
 # Check threat intelligence database
-sqlite3 $HOME/security-suite/configs/threat_intelligence/ioc_database.db "PRAGMA integrity_check;"
+sqlite3 $HOME/aegis-security-suite/configs/threat_intelligence/ioc_database.db "PRAGMA integrity_check;"
 ```
 
 ##### Solution 2: Repair Database
 ```bash
 # Export data from corrupted database
-sqlite3 $HOME/security-suite/configs/behavioral_analysis/behavioral_data.db ".dump" > behavioral_backup.sql
+sqlite3 $HOME/aegis-security-suite/configs/behavioral_analysis/behavioral_data.db ".dump" > behavioral_backup.sql
 
 # Create new database
-rm $HOME/security-suite/configs/behavioral_analysis/behavioral_data.db
-sqlite3 $HOME/security-suite/configs/behavioral_analysis/behavioral_data.db < behavioral_backup.sql
+rm $HOME/aegis-security-suite/configs/behavioral_analysis/behavioral_data.db
+sqlite3 $HOME/aegis-security-suite/configs/behavioral_analysis/behavioral_data.db < behavioral_backup.sql
 
 # Repeat for other databases if needed
 ```
@@ -450,10 +450,10 @@ sqlite3 $HOME/security-suite/configs/behavioral_analysis/behavioral_data.db < be
 ##### Solution 3: Reinitialize Database
 ```bash
 # Backup existing data
-cp $HOME/security-suite/configs/behavioral_analysis/behavioral_data.db $HOME/security-suite/configs/behavioral_analysis/behavioral_data.db.backup
+cp $HOME/aegis-security-suite/configs/behavioral_analysis/behavioral_data.db $HOME/aegis-security-suite/configs/behavioral_analysis/behavioral_data.db.backup
 
 # Reinitialize database
-cd $SECURITY_SUITE_HOME/scripts
+cd $AEGIS_HOME/scripts
 ./behavioral-analysis.sh init
 
 # Restore data if needed (advanced)
@@ -497,7 +497,7 @@ sudo whoami
 ##### Solution 3: Use Sudo Wrapper
 ```bash
 # Use the provided sudo wrapper script
-cd ~/security-suite/src/core/scripts
+cd ~/aegis-security-suite/src/core/scripts
 ./sudo-wrapper.sh clamscan --version
 ./sudo-wrapper.sh rkhunter --version
 ```
@@ -514,35 +514,35 @@ cd ~/security-suite/src/core/scripts
 ##### Solution 1: Check File Permissions
 ```bash
 # Check security suite directory permissions
-ls -la $HOME/security-suite/
+ls -la $HOME/aegis-security-suite/
 
 # Check configuration file permissions
-ls -la $HOME/security-suite/configs/
-ls -la $HOME/security-suite/configs/security-config.conf
+ls -la $HOME/aegis-security-suite/configs/
+ls -la $HOME/aegis-security-suite/configs/security-config.conf
 
 # Check script permissions
-ls -la $HOME/security-suite/scripts/
+ls -la $HOME/aegis-security-suite/scripts/
 ```
 
 ##### Solution 2: Fix File Permissions
 ```bash
 # Fix directory permissions
-chmod -R 755 $HOME/security-suite/
-chmod -R 700 $HOME/security-suite/configs/
-chmod -R 755 $HOME/security-suite/scripts/
+chmod -R 755 $HOME/aegis-security-suite/
+chmod -R 700 $HOME/aegis-security-suite/configs/
+chmod -R 755 $HOME/aegis-security-suite/scripts/
 
 # Fix file permissions
-chmod 644 $HOME/security-suite/configs/security-config.conf
-chmod 755 $HOME/security-suite/scripts/*.sh
+chmod 644 $HOME/aegis-security-suite/configs/security-config.conf
+chmod 755 $HOME/aegis-security-suite/scripts/*.sh
 ```
 
 ##### Solution 3: Check Directory Ownership
 ```bash
 # Check directory ownership
-ls -la $HOME/security-suite/
+ls -la $HOME/aegis-security-suite/
 
 # Fix ownership if needed
-sudo chown -R $(whoami):$(whoami) $HOME/security-suite/
+sudo chown -R $(whoami):$(whoami) $HOME/aegis-security-suite/
 ```
 
 ### Problem: Systemd User Service Permissions
@@ -599,7 +599,7 @@ systemctl --user reset-failed
 ##### Solution 1: Check Dashboard Status
 ```bash
 # Check if dashboard is running
-cd $HOME/security-suite/web-dashboard
+cd $HOME/aegis-security-suite/web-dashboard
 ./start-dashboard.sh status
 
 # Start dashboard if not running
@@ -657,7 +657,7 @@ curl http://localhost:8080/
 ##### Solution 1: Check Dashboard Binding
 ```bash
 # Check dashboard configuration
-cat ~/security-suite/src/dashboard/start-dashboard.sh
+cat ~/aegis-security-suite/src/dashboard/start-dashboard.sh
 
 # Ensure dashboard binds to 0.0.0.0 instead of 127.0.0.1
 # Edit the start-dashboard.sh script if needed
@@ -744,7 +744,7 @@ sudo pacman -Syu
 ##### Solution 2: Reset Admin Password
 ```bash
 # Reset admin password
-cd $HOME/security-suite/web-dashboard
+cd $HOME/aegis-security-suite/web-dashboard
 python3 -c "
 from auth import hash_password, update_password
 import sqlite3
@@ -766,13 +766,13 @@ print('Admin password reset to aegis123')
 ##### Solution 3: Check Authentication Database
 ```bash
 # Check if auth database exists
-ls -la ~/security-suite/src/dashboard/auth.db
+ls -la ~/aegis-security-suite/src/dashboard/auth.db
 
 # Check if admin user exists
-sqlite3 ~/security-suite/src/dashboard/auth.db "SELECT * FROM users;"
+sqlite3 ~/aegis-security-suite/src/dashboard/auth.db "SELECT * FROM users;"
 
 # Create admin user if it doesn't exist
-cd ~/security-suite/src/dashboard
+cd ~/aegis-security-suite/src/dashboard
 python3 -c "
 from auth import init_database
 init_database()
@@ -798,7 +798,7 @@ print('Auth database initialized with admin user')
 ##### Solution 2: Check Dashboard Logs
 ```bash
 # Check dashboard logs
-cd ~/security-suite/src/dashboard
+cd ~/aegis-security-suite/src/dashboard
 tail -n 50 dashboard.log
 
 # Check for authentication errors
@@ -808,7 +808,7 @@ grep -i auth dashboard.log
 ##### Solution 3: Restart Dashboard
 ```bash
 # Restart dashboard service
-cd ~/security-suite/src/dashboard
+cd ~/aegis-security-suite/src/dashboard
 ./start-dashboard.sh restart
 
 # Check if errors persist
@@ -841,8 +841,8 @@ curl -u admin:aegis123 http://localhost:8080/api/incidents/list
 ##### Solution 3: Check Database Connections
 ```bash
 # Test database connections
-sqlite3 $HOME/security-suite/configs/behavioral_analysis/behavioral_data.db "SELECT COUNT(*) FROM system_metrics;"
-sqlite3 $HOME/security-suite/configs/incident_response/incidents.db "SELECT COUNT(*) FROM incidents;"
+sqlite3 $HOME/aegis-security-suite/configs/behavioral_analysis/behavioral_data.db "SELECT COUNT(*) FROM system_metrics;"
+sqlite3 $HOME/aegis-security-suite/configs/incident_response/incidents.db "SELECT COUNT(*) FROM incidents;"
 ```
 
 ---
@@ -872,7 +872,7 @@ htop
 ##### Solution 2: Adjust Scan Scheduling
 ```bash
 # Edit scan configuration
-nano ~/security-suite/configs/security-config.conf
+nano ~/aegis-security-suite/configs/security-config.conf
 
 # Reduce scan frequency or adjust scan times
 # Set scans to run during off-peak hours
@@ -911,16 +911,16 @@ free -h
 ##### Solution 2: Optimize Database Usage
 ```bash
 # Check database sizes
-du -sh $HOME/security-suite/configs/*/*.db
+du -sh $HOME/aegis-security-suite/configs/*/*.db
 
 # Clean up old data if needed
-sqlite3 $HOME/security-suite/configs/behavioral_analysis/behavioral_data.db "DELETE FROM system_metrics WHERE timestamp < datetime('now', '-30 days');"
+sqlite3 $HOME/aegis-security-suite/configs/behavioral_analysis/behavioral_data.db "DELETE FROM system_metrics WHERE timestamp < datetime('now', '-30 days');"
 ```
 
 ##### Solution 3: Adjust Scan Configuration
 ```bash
 # Edit scan configuration to reduce memory usage
-nano ~/security-suite/configs/security-config.conf
+nano ~/aegis-security-suite/configs/security-config.conf
 
 # Reduce scan directories or exclude large files
 # Limit scan depth and file size
@@ -938,7 +938,7 @@ nano ~/security-suite/configs/security-config.conf
 ##### Solution 1: Check Database Performance
 ```bash
 # Check database query performance
-cd $HOME/security-suite/configs/behavioral_analysis
+cd $HOME/aegis-security-suite/configs/behavioral_analysis
 sqlite3 behavioral_data.db << EOF
 .timer on
 EXPLAIN QUERY PLAN SELECT * FROM system_metrics ORDER BY timestamp DESC LIMIT 100;
@@ -950,17 +950,17 @@ EOF
 ##### Solution 2: Optimize Database
 ```bash
 # Create indexes for better performance
-sqlite3 $HOME/security-suite/configs/behavioral_analysis/behavioral_data.db "CREATE INDEX IF NOT EXISTS idx_timestamp ON system_metrics(timestamp);"
-sqlite3 $HOME/security-suite/configs/incident_response/incidents.db "CREATE INDEX IF NOT EXISTS idx_created_at ON incidents(created_at);"
+sqlite3 $HOME/aegis-security-suite/configs/behavioral_analysis/behavioral_data.db "CREATE INDEX IF NOT EXISTS idx_timestamp ON system_metrics(timestamp);"
+sqlite3 $HOME/aegis-security-suite/configs/incident_response/incidents.db "CREATE INDEX IF NOT EXISTS idx_created_at ON incidents(created_at);"
 ```
 
 ##### Solution 3: Clean Up Old Data
 ```bash
 # Clean up old behavioral data
-sqlite3 $HOME/security-suite/configs/behavioral_analysis/behavioral_data.db "DELETE FROM system_metrics WHERE timestamp < datetime('now', '-30 days');"
+sqlite3 $HOME/aegis-security-suite/configs/behavioral_analysis/behavioral_data.db "DELETE FROM system_metrics WHERE timestamp < datetime('now', '-30 days');"
 
 # Clean up old incidents
-sqlite3 $HOME/security-suite/configs/incident_response/incidents.db "DELETE FROM incidents WHERE created_at < datetime('now', '-90 days');"
+sqlite3 $HOME/aegis-security-suite/configs/incident_response/incidents.db "DELETE FROM incidents WHERE created_at < datetime('now', '-90 days');"
 ```
 
 ---
@@ -1098,11 +1098,11 @@ sudo lynis audit system --quick | grep -E "(suggestion|warning)"
 ##### Solution 1: Initialize Behavioral Analysis
 ```bash
 # Initialize behavioral analysis
-cd $SECURITY_SUITE_HOME/scripts
+cd $AEGIS_HOME/scripts
 ./behavioral-analysis.sh init
 
 # Check if database was created
-ls -la $HOME/security-suite/configs/behavioral_analysis/behavioral_data.db
+ls -la $HOME/aegis-security-suite/configs/behavioral_analysis/behavioral_data.db
 ```
 
 ##### Solution 2: Create Baseline
@@ -1111,7 +1111,7 @@ ls -la $HOME/security-suite/configs/behavioral_analysis/behavioral_data.db
 ./behavioral-analysis.sh baseline 7
 
 # Check baseline data
-sqlite3 $HOME/security-suite/configs/behavioral_analysis/behavioral_data.db "SELECT * FROM system_metrics LIMIT 5;"
+sqlite3 $HOME/aegis-security-suite/configs/behavioral_analysis/behavioral_data.db "SELECT * FROM system_metrics LIMIT 5;"
 ```
 
 ##### Solution 3: Test Anomaly Detection
@@ -1120,7 +1120,7 @@ sqlite3 $HOME/security-suite/configs/behavioral_analysis/behavioral_data.db "SEL
 ./behavioral-analysis.sh detect
 
 # Check for anomalies
-sqlite3 $HOME/security-suite/configs/behavioral_analysis/behavioral_data.db "SELECT * FROM anomaly_events;"
+sqlite3 $HOME/aegis-security-suite/configs/behavioral_analysis/behavioral_data.db "SELECT * FROM anomaly_events;"
 ```
 
 ### Problem: Behavioral Analysis Performance Issues
@@ -1141,17 +1141,17 @@ sqlite3 $HOME/security-suite/configs/behavioral_analysis/behavioral_data.db "SEL
 ##### Solution 2: Clean Up Old Data
 ```bash
 # Clean up old behavioral data
-sqlite3 $HOME/security-suite/configs/behavioral_analysis/behavioral_data.db "DELETE FROM system_metrics WHERE timestamp < datetime('now', '-30 days');"
+sqlite3 $HOME/aegis-security-suite/configs/behavioral_analysis/behavioral_data.db "DELETE FROM system_metrics WHERE timestamp < datetime('now', '-30 days');"
 
 # Vacuum database to reclaim space
-sqlite3 $HOME/security-suite/configs/behavioral_analysis/behavioral_data.db "VACUUM;"
+sqlite3 $HOME/aegis-security-suite/configs/behavioral_analysis/behavioral_data.db "VACUUM;"
 ```
 
 ##### Solution 3: Optimize Database
 ```bash
 # Create indexes for better performance
-sqlite3 $HOME/security-suite/configs/behavioral_analysis/behavioral_data.db "CREATE INDEX IF NOT EXISTS idx_timestamp ON system_metrics(timestamp);"
-sqlite3 $HOME/security-suite/configs/behavioral_analysis/behavioral_data.db "CREATE INDEX IF NOT EXISTS idx_anomaly_timestamp ON anomaly_events(timestamp);"
+sqlite3 $HOME/aegis-security-suite/configs/behavioral_analysis/behavioral_data.db "CREATE INDEX IF NOT EXISTS idx_timestamp ON system_metrics(timestamp);"
+sqlite3 $HOME/aegis-security-suite/configs/behavioral_analysis/behavioral_data.db "CREATE INDEX IF NOT EXISTS idx_anomaly_timestamp ON anomaly_events(timestamp);"
 ```
 
 ---
@@ -1170,11 +1170,11 @@ sqlite3 $HOME/security-suite/configs/behavioral_analysis/behavioral_data.db "CRE
 ##### Solution 1: Initialize Incident Response
 ```bash
 # Initialize incident response
-cd $SECURITY_SUITE_HOME/scripts
+cd $AEGIS_HOME/scripts
 ./incident-response.sh init
 
 # Check if database was created
-ls -la $HOME/security-suite/configs/incident_response/incidents.db
+ls -la $HOME/aegis-security-suite/configs/incident_response/incidents.db
 ```
 
 ##### Solution 2: Test Incident Creation
@@ -1183,7 +1183,7 @@ ls -la $HOME/security-suite/configs/incident_response/incidents.db
 ./incident-response.sh response "test_incident" "Test incident details" "low"
 
 # Check if incident was created
-sqlite3 $HOME/security-suite/configs/incident_response/incidents.db "SELECT * FROM incidents;"
+sqlite3 $HOME/aegis-security-suite/configs/incident_response/incidents.db "SELECT * FROM incidents;"
 ```
 
 ##### Solution 3: Test Response Actions
@@ -1193,7 +1193,7 @@ echo "test file" > /tmp/test_file.txt
 ./incident-response.sh quarantine "TEST_001" "/tmp/test_file.txt"
 
 # Check if file was quarantined
-ls -la $HOME/security-suite/quarantine/
+ls -la $HOME/aegis-security-suite/quarantine/
 ```
 
 ### Problem: Incident Response Permission Issues
@@ -1218,16 +1218,16 @@ sudo visudo
 ##### Solution 2: Check Directory Permissions
 ```bash
 # Check quarantine directory permissions
-ls -la $HOME/security-suite/quarantine/
+ls -la $HOME/aegis-security-suite/quarantine/
 
 # Fix permissions if needed
-chmod 755 $HOME/security-suite/quarantine/
+chmod 755 $HOME/aegis-security-suite/quarantine/
 ```
 
 ##### Solution 3: Test Response Actions Manually
 ```bash
 # Test file quarantine manually
-sudo mv /tmp/test_file.txt $HOME/security-suite/quarantine/test_file.txt_$(date +%s)
+sudo mv /tmp/test_file.txt $HOME/aegis-security-suite/quarantine/test_file.txt_$(date +%s)
 
 # Test process isolation manually
 sudo kill -STOP 1234  # Replace with actual PID
@@ -1249,11 +1249,11 @@ sudo kill -STOP 1234  # Replace with actual PID
 ##### Solution 1: Run Integration Tests
 ```bash
 # Run comprehensive integration tests
-cd $SECURITY_SUITE_HOME
+cd $AEGIS_HOME
 ./tests/test-suite-comprehensive.sh
 
 # Check test results
-cat $HOME/security-suite/test-results/test-report-*.txt
+cat $HOME/aegis-security-suite/test-results/test-report-*.txt
 ```
 
 ##### Solution 2: Check Component Communication
@@ -1271,7 +1271,7 @@ curl -u admin:aegis123 http://localhost:8080/api/incidents/list
 ./scripts/security-daily-scan.sh
 
 # 2. Check if incidents were created
-sqlite3 $HOME/security-suite/configs/incident_response/incidents.db "SELECT * FROM incidents ORDER BY created_at DESC LIMIT 5;"
+sqlite3 $HOME/aegis-security-suite/configs/incident_response/incidents.db "SELECT * FROM incidents ORDER BY created_at DESC LIMIT 5;"
 
 # 3. Check if dashboard shows data
 curl -u admin:aegis123 http://localhost:8080/api/incidents/list
@@ -1289,16 +1289,16 @@ curl -u admin:aegis123 http://localhost:8080/api/incidents/list
 ##### Solution 1: Validate Configuration
 ```bash
 # Check configuration syntax
-bash -n $HOME/security-suite/configs/security-config.conf
+bash -n $HOME/aegis-security-suite/configs/security-config.conf
 
 # Check for duplicate settings
-grep -n "SCAN_DIRECTORIES" $HOME/security-suite/configs/security-config.conf
+grep -n "SCAN_DIRECTORIES" $HOME/aegis-security-suite/configs/security-config.conf
 ```
 
 ##### Solution 2: Reset Configuration
 ```bash
 # Backup current configuration
-cp $HOME/security-suite/configs/security-config.conf $HOME/security-suite/configs/security-config.conf.backup
+cp $HOME/aegis-security-suite/configs/security-config.conf $HOME/aegis-security-suite/configs/security-config.conf.backup
 
 # Reset to default configuration
 ./setup-aegis.sh
@@ -1309,12 +1309,12 @@ cp $HOME/security-suite/configs/security-config.conf $HOME/security-suite/config
 ##### Solution 3: Check Environment Variables
 ```bash
 # Check relevant environment variables
-echo $SECURITY_SUITE_HOME
+echo $AEGIS_HOME
 echo $PATH
 
 # Set correct environment variables
-export SECURITY_SUITE_HOME="$HOME/security-suite"
-export PATH="$PATH:$HOME/security-suite/scripts"
+export AEGIS_HOME="$HOME/aegis-security-suite"
+export PATH="$PATH:$HOME/aegis-security-suite/scripts"
 ```
 
 ---
@@ -1344,11 +1344,11 @@ df -h
 ##### Step 2: Emergency Restart
 ```bash
 # Restart all security services
-cd $SECURITY_SUITE_HOME
+cd $AEGIS_HOME
 ./scripts/start-aegis.sh restart all
 
 # Restart dashboard
-cd $HOME/security-suite/web-dashboard
+cd $HOME/aegis-security-suite/web-dashboard
 ./start-dashboard.sh restart
 ```
 
@@ -1356,10 +1356,10 @@ cd $HOME/security-suite/web-dashboard
 ```bash
 # Check recent logs
 journalctl --user --since "1 hour ago" --no-pager
-tail -n 100 ~/security-suite/logs/manual/security_scan_*.log
+tail -n 100 ~/aegis-security-suite/logs/manual/security_scan_*.log
 
 # Check for critical errors
-grep -i "error\|critical\|fatal" $HOME/security-suite/logs/manual/*.log
+grep -i "error\|critical\|fatal" $HOME/aegis-security-suite/logs/manual/*.log
 ```
 
 ### Emergency: Security Incident
@@ -1411,14 +1411,14 @@ sudo pacman -Syu
 ##### Step 1: Immediate Backup
 ```bash
 # Backup all data
-cp -r $HOME/security-suite/configs $HOME/security-suite/configs.backup.$(date +%s)
-cp -r $HOME/security-suite/logs $HOME/security-suite/logs.backup.$(date +%s)
+cp -r $HOME/aegis-security-suite/configs $HOME/aegis-security-suite/configs.backup.$(date +%s)
+cp -r $HOME/aegis-security-suite/logs $HOME/aegis-security-suite/logs.backup.$(date +%s)
 ```
 
 ##### Step 2: Database Recovery
 ```bash
 # Attempt database repair
-sqlite3 $HOME/security-suite/configs/behavioral_analysis/behavioral_data.db ".recover" | sqlite3 behavioral_data_recovered.db
+sqlite3 $HOME/aegis-security-suite/configs/behavioral_analysis/behavioral_data.db ".recover" | sqlite3 behavioral_data_recovered.db
 
 # If repair fails, reinitialize
 ./scripts/behavioral-analysis.sh init
@@ -1428,7 +1428,7 @@ sqlite3 $HOME/security-suite/configs/behavioral_analysis/behavioral_data.db ".re
 ##### Step 3: System Verification
 ```bash
 # Run comprehensive tests
-$SECURITY_SUITE_HOME/tests/test-suite-comprehensive.sh
+$AEGIS_HOME/tests/test-suite-comprehensive.sh
 
 # Verify all components are working
 ./scripts/start-aegis.sh status
@@ -1488,17 +1488,17 @@ When reporting issues, include:
 
 ```bash
 # Emergency restart
-cd $SECURITY_SUITE_HOME
+cd $AEGIS_HOME
 ./scripts/start-aegis.sh restart all
 
 # Emergency status check
 ./scripts/start-aegis.sh status
 
 # Emergency log check
-tail -n 50 $HOME/security-suite/logs/manual/security_scan_*.log
+tail -n 50 $HOME/aegis-security-suite/logs/manual/security_scan_*.log
 
 # Emergency database check
-sqlite3 $HOME/security-suite/configs/behavioral_analysis/behavioral_data.db "PRAGMA integrity_check;"
+sqlite3 $HOME/aegis-security-suite/configs/behavioral_analysis/behavioral_data.db "PRAGMA integrity_check;"
 ```
 
 ### Diagnostic Commands
@@ -1513,8 +1513,8 @@ netstat -tlnp | grep 8080
 ping -c 3 8.8.8.8
 
 # Database diagnostics
-ls -la $HOME/security-suite/configs/*/*.db
-du -sh $HOME/security-suite/configs/*/
+ls -la $HOME/aegis-security-suite/configs/*/*.db
+du -sh $HOME/aegis-security-suite/configs/*/
 ```
 
 ### Recovery Commands
@@ -1525,10 +1525,10 @@ systemctl --user daemon-reload
 systemctl --user reset-failed
 
 # Database recovery
-sqlite3 $HOME/security-suite/configs/behavioral_analysis/behavioral_data.db ".recover"
+sqlite3 $HOME/aegis-security-suite/configs/behavioral_analysis/behavioral_data.db ".recover"
 
 # Configuration recovery
-cp $HOME/security-suite/configs/security-config.conf.backup $HOME/security-suite/configs/security-config.conf
+cp $HOME/aegis-security-suite/configs/security-config.conf.backup $HOME/aegis-security-suite/configs/security-config.conf
 ```
 
 ---

@@ -3,13 +3,13 @@
 
 source "$(dirname "$0")/common-functions.sh"
 
-SECURITY_SUITE_HOME="$(dirname "$(dirname "$0)")"
-THREAT_INTEL_SCRIPT="$SECURITY_SUITE_HOME/scripts/threat-intelligence-optimized.sh"
+AEGIS_HOME="$(dirname "$(dirname "$0")")"
+THREAT_INTEL_SCRIPT="$AEGIS_HOME/scripts/threat-intelligence-optimized.sh"
 
 log_info "Setting up automated threat feed updates..."
 
 # Create systemd service for threat intelligence updates
-cat > "$SECURITY_SUITE_HOME/scripts/threat-feed-update.service" << EOF
+cat > "$AEGIS_HOME/scripts/threat-feed-update.service" << EOF
 [Unit]
 Description=Aegis Security Suite - Threat Intelligence Feed Updates
 After=network-online.target
@@ -25,7 +25,7 @@ StandardError=journal
 EOF
 
 # Create systemd timer for hourly updates
-cat > "$SECURITY_SUITE_HOME/scripts/threat-feed-update.timer" << EOF
+cat > "$AEGIS_HOME/scripts/threat-feed-update.timer" << EOF
 [Unit]
 Description=Run threat intelligence feed updates every hour
 Requires=threat-feed-update.service
@@ -40,7 +40,7 @@ WantedBy=timers.target
 EOF
 
 # Create systemd timer for daily full updates
-cat > "$SECURITY_SUITE_HOME/scripts/threat-feed-daily.timer" << EOF
+cat > "$AEGIS_HOME/scripts/threat-feed-daily.timer" << EOF
 [Unit]
 Description=Run full threat intelligence feed updates daily
 Requires=threat-feed-update.service
@@ -55,7 +55,7 @@ WantedBy=timers.target
 EOF
 
 # Create systemd timer for weekly cleanup
-cat > "$SECURITY_SUITE_HOME/scripts/threat-feed-cleanup.timer" << EOF
+cat > "$AEGIS_HOME/scripts/threat-feed-cleanup.timer" << EOF
 [Unit]
 Description=Run threat intelligence cleanup weekly
 Requires=threat-feed-update.service
@@ -70,19 +70,19 @@ WantedBy=timers.target
 EOF
 
 # Create cleanup script
-cat > "$SECURITY_SUITE_HOME/scripts/threat-feed-cleanup.sh" << 'EOF'
+cat > "$AEGIS_HOME/scripts/threat-feed-cleanup.sh" << 'EOF'
 #!/bin/bash
 # Threat Intelligence Cleanup Script
 
 source "$(dirname "$0")/common-functions.sh"
 
-SECURITY_SUITE_HOME="$(dirname "$(dirname "$0)")"
-THREAT_INTEL_SCRIPT="$SECURITY_SUITE_HOME/scripts/threat-intelligence-optimized.sh"
+AEGIS_HOME="$(dirname "$(dirname "$0")")"
+THREAT_INTEL_SCRIPT="$AEGIS_HOME/scripts/threat-intelligence-optimized.sh"
 
 log_info "Running threat intelligence cleanup..."
 
 # Remove old IOCs (older than 30 days) with low confidence
-IOC_DATABASE="$SECURITY_SUITE_HOME/configs/threat_intelligence/ioc_database.db"
+IOC_DATABASE="$AEGIS_HOME/configs/threat_intelligence/ioc_database.db"
 CUTOFF_DATE=$(date -d "30 days ago" +%s)
 
 sqlite3 "$IOC_DATABASE" << EOF
@@ -93,7 +93,7 @@ DELETE FROM ioc_hashes WHERE first_seen < $CUTOFF_DATE AND confidence < 70;
 EOF
 
 # Clean up old cache files
-find "$SECURITY_SUITE_HOME/configs/threat_intelligence/cache" -type f -mtime +7 -delete 2>/dev/null
+find "$AEGIS_HOME/configs/threat_intelligence/cache" -type f -mtime +7 -delete 2>/dev/null
 
 # Vacuum database to optimize space
 sqlite3 "$IOC_DATABASE" "VACUUM;"
@@ -101,7 +101,7 @@ sqlite3 "$IOC_DATABASE" "VACUUM;"
 log_success "Threat intelligence cleanup completed"
 EOF
 
-chmod +x "$SECURITY_SUITE_HOME/scripts/threat-feed-cleanup.sh"
+chmod +x "$AEGIS_HOME/scripts/threat-feed-cleanup.sh"
 
 # Install systemd services and timers
 log_info "Installing systemd services and timers..."
@@ -110,10 +110,10 @@ log_info "Installing systemd services and timers..."
 SYSTEMD_USER_DIR="$HOME/.config/systemd/user"
 mkdir -p "$SYSTEMD_USER_DIR"
 
-cp "$SECURITY_SUITE_HOME/scripts/threat-feed-update.service" "$SYSTEMD_USER_DIR/"
-cp "$SECURITY_SUITE_HOME/scripts/threat-feed-update.timer" "$SYSTEMD_USER_DIR/"
-cp "$SECURITY_SUITE_HOME/scripts/threat-feed-daily.timer" "$SYSTEMD_USER_DIR/"
-cp "$SECURITY_SUITE_HOME/scripts/threat-feed-cleanup.timer" "$SYSTEMD_USER_DIR/"
+cp "$AEGIS_HOME/scripts/threat-feed-update.service" "$SYSTEMD_USER_DIR/"
+cp "$AEGIS_HOME/scripts/threat-feed-update.timer" "$SYSTEMD_USER_DIR/"
+cp "$AEGIS_HOME/scripts/threat-feed-daily.timer" "$SYSTEMD_USER_DIR/"
+cp "$AEGIS_HOME/scripts/threat-feed-cleanup.timer" "$SYSTEMD_USER_DIR/"
 
 # Create a service for cleanup
 cat > "$SYSTEMD_USER_DIR/threat-feed-cleanup.service" << EOF
@@ -123,7 +123,7 @@ After=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=$SECURITY_SUITE_HOME/scripts/threat-feed-cleanup.sh
+ExecStart=$AEGIS_HOME/scripts/threat-feed-cleanup.sh
 User=$USER
 Group=$USER
 StandardOutput=journal
@@ -146,12 +146,12 @@ systemctl --user start threat-feed-cleanup.timer
 # Create cron fallback for systems without systemd
 log_info "Creating cron fallback script..."
 
-cat > "$SECURITY_SUITE_HOME/scripts/threat-feed-cron.sh" << 'EOF'
+cat > "$AEGIS_HOME/scripts/threat-feed-cron.sh" << 'EOF'
 #!/bin/bash
 # Cron fallback for threat intelligence updates
 
-SECURITY_SUITE_HOME="$(dirname "$(dirname "$0")")"
-THREAT_INTEL_SCRIPT="$SECURITY_SUITE_HOME/scripts/threat-intelligence-optimized.sh"
+AEGIS_HOME="$(dirname "$(dirname "$0")")"
+THREAT_INTEL_SCRIPT="$AEGIS_HOME/scripts/threat-intelligence-optimized.sh"
 
 # Check if systemd timers are active
 if ! systemctl --user is-active --quiet threat-feed-update.timer 2>/dev/null; then
@@ -163,28 +163,28 @@ if ! systemctl --user is-active --quiet threat-feed-update.timer 2>/dev/null; th
             ;;
         03)
             # Daily cleanup at 3 AM
-            "$SECURITY_SUITE_HOME/scripts/threat-feed-cleanup.sh"
+            "$AEGIS_HOME/scripts/threat-feed-cleanup.sh"
             ;;
     esac
 fi
 EOF
 
-chmod +x "$SECURITY_SUITE_HOME/scripts/threat-feed-cron.sh"
+chmod +x "$AEGIS_HOME/scripts/threat-feed-cron.sh"
 
 # Add to crontab if not already present
-CRON_ENTRY="0 */6 * * * $SECURITY_SUITE_HOME/scripts/threat-feed-cron.sh"
+CRON_ENTRY="0 */6 * * * $AEGIS_HOME/scripts/threat-feed-cron.sh"
 if ! crontab -l 2>/dev/null | grep -q "threat-feed-cron.sh"; then
     (crontab -l 2>/dev/null; echo "$CRON_ENTRY") | crontab -
     log_info "Added cron fallback for threat feed updates"
 fi
 
 # Create status check script
-cat > "$SECURITY_SUITE_HOME/scripts/check-threat-feed-status.sh" << 'EOF'
+cat > "$AEGIS_HOME/scripts/check-threat-feed-status.sh" << 'EOF'
 #!/bin/bash
 # Check Threat Feed Update Status
 
-SECURITY_SUITE_HOME="$(dirname "$(dirname "$0)")"
-IOC_DATABASE="$SECURITY_SUITE_HOME/configs/threat_intelligence/ioc_database.db"
+AEGIS_HOME="$(dirname "$(dirname "$0")")"
+IOC_DATABASE="$AEGIS_HOME/configs/threat_intelligence/ioc_database.db"
 
 echo "=== Threat Intelligence Status ==="
 echo
@@ -227,7 +227,7 @@ LIMIT 10;
 EOF
 EOF
 
-chmod +x "$SECURITY_SUITE_HOME/scripts/check-threat-feed-status.sh"
+chmod +x "$AEGIS_HOME/scripts/check-threat-feed-status.sh"
 
 log_success "Automated threat feed updates configured"
 log_info "Services installed:"
@@ -235,7 +235,7 @@ log_info "  - threat-feed-update.timer (hourly updates)"
 log_info "  - threat-feed-daily.timer (daily full updates)"
 log_info "  - threat-feed-cleanup.timer (weekly cleanup)"
 log_info ""
-log_info "Status check script: $SECURITY_SUITE_HOME/scripts/check-threat-feed-status.sh"
+log_info "Status check script: $AEGIS_HOME/scripts/check-threat-feed-status.sh"
 log_info ""
 log_info "To check timer status: systemctl --user list-timers | grep threat-feed"
 log_info "To view logs: journalctl --user -u threat-feed-update.service"

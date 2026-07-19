@@ -12,15 +12,15 @@ fi
 
 # Get security suite home directory
 SCRIPT_DIR="$(dirname "$0")"
-SECURITY_SUITE_HOME="$(dirname "$SCRIPT_DIR")"
+AEGIS_HOME="$(dirname "$SCRIPT_DIR")"
 
 # Load configuration to get database paths
-source "$SECURITY_SUITE_HOME/configs/security-config.conf" 2>/dev/null || {
+source "$AEGIS_HOME/configs/security-config.conf" 2>/dev/null || {
     # Fallback if config not available
-    INCIDENT_DB_DIR="$SECURITY_SUITE_HOME/configs/incident_response"
+    INCIDENT_DB_DIR="$AEGIS_HOME/configs/incident_response"
     INCIDENT_DATABASE="$INCIDENT_DB_DIR/incidents.db"
-    QUARANTINE_DIR="$SECURITY_SUITE_HOME/quarantine"
-    EVIDENCE_DIR="$SECURITY_SUITE_HOME/evidence"
+    QUARANTINE_DIR="$AEGIS_HOME/quarantine"
+    EVIDENCE_DIR="$AEGIS_HOME/evidence"
 }
 
 # Incident response configuration

@@ -6,13 +6,13 @@ Wants=network.target
 
 [Service]
 Type=simple
-ExecStart=${SECURITY_SUITE_HOME}/scripts/memory-monitor.sh start
+ExecStart=${AEGIS_HOME}/scripts/memory-monitor.sh start
 Restart=on-failure
 RestartSec=30
 
 # Environment
-Environment=SECURITY_SUITE_HOME=${SECURITY_SUITE_HOME}
-Environment=LOGS_DIR=${SECURITY_SUITE_HOME}/logs
+Environment=AEGIS_HOME=${AEGIS_HOME}
+Environment=LOGS_DIR=${AEGIS_HOME}/logs
 Environment=MEMORY_THRESHOLD_WARNING=80
 Environment=MEMORY_THRESHOLD_CRITICAL=90
 Environment=PROCESS_MEMORY_LIMIT=500

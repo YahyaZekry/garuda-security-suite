@@ -26,7 +26,7 @@ def start_scan():
         data = request.get_json() or {}
         scan_type = data.get('type', 'quick')
 
-        security_home = os.environ.get('SECURITY_SUITE_HOME', '/opt/aegis-security-suite')
+        security_home = os.environ.get('AEGIS_HOME', '/opt/aegis-security-suite')
         scanner_script = os.path.join(security_home, 'scripts', 'security-scanner.sh')
 
         if os.path.exists(scanner_script):

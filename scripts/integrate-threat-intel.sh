@@ -4,8 +4,8 @@
 source "$(dirname "$0")/common-functions.sh"
 
 # Set paths
-SECURITY_SUITE_HOME="$(dirname "$(dirname "$0)")"
-THREAT_DB_DIR="$SECURITY_SUITE_HOME/configs/threat_intelligence"
+AEGIS_HOME="$(dirname "$(dirname "$0")")"
+THREAT_DB_DIR="$AEGIS_HOME/configs/threat_intelligence"
 IOC_DATABASE="$THREAT_DB_DIR/ioc_database.db"
 
 log_info "Integrating threat intelligence with scanning components..."
@@ -57,14 +57,14 @@ check_hash_ioc() {
 # Create enhanced scanner scripts with threat intelligence integration
 
 # Enhanced ClamAV scanner
-cat > "$SECURITY_SUITE_HOME/scripts/scanners/clamav-with-threat-intel.sh" << 'EOF'
+cat > "$AEGIS_HOME/scripts/scanners/clamav-with-threat-intel.sh" << 'EOF'
 #!/bin/bash
 # ClamAV Scanner with Threat Intelligence Integration
 
 source "$(dirname "$0")/../common-functions.sh"
 
 SCAN_PATH="${1:-$HOME}"
-IOC_DATABASE="$SECURITY_SUITE_HOME/configs/threat_intelligence/ioc_database.db"
+IOC_DATABASE="$AEGIS_HOME/configs/threat_intelligence/ioc_database.db"
 
 log_info "Starting ClamAV scan with threat intelligence integration for: $SCAN_PATH"
 
@@ -99,7 +99,7 @@ if command -v clamscan &>/dev/null; then
     
     # Then run ClamAV scan
     clamscan --recursive --infected --detect-pua --detect-structured=yes \
-             --database="$SECURITY_SUITE_HOME/configs/clamav" "$SCAN_PATH"
+             --database="$AEGIS_HOME/configs/clamav" "$SCAN_PATH"
     
     scan_result=$?
     if [ $scan_result -eq 0 ]; then
@@ -116,13 +116,13 @@ fi
 EOF
 
 # Enhanced RKHunter scanner
-cat > "$SECURITY_SUITE_HOME/scripts/scanners/rkhunter-with-threat-intel.sh" << 'EOF'
+cat > "$AEGIS_HOME/scripts/scanners/rkhunter-with-threat-intel.sh" << 'EOF'
 #!/bin/bash
 # RKHunter Scanner with Threat Intelligence Integration
 
 source "$(dirname "$0")/../common-functions.sh"
 
-IOC_DATABASE="$SECURITY_SUITE_HOME/configs/threat_intelligence/ioc_database.db"
+IOC_DATABASE="$AEGIS_HOME/configs/threat_intelligence/ioc_database.db"
 
 log_info "Starting RKHunter scan with threat intelligence integration"
 
@@ -164,14 +164,14 @@ fi
 EOF
 
 # Make the enhanced scanners executable
-chmod +x "$SECURITY_SUITE_HOME/scripts/scanners/clamav-with-threat-intel.sh"
-chmod +x "$SECURITY_SUITE_HOME/scripts/scanners/rkhunter-with-threat-intel.sh"
+chmod +x "$AEGIS_HOME/scripts/scanners/clamav-with-threat-intel.sh"
+chmod +x "$AEGIS_HOME/scripts/scanners/rkhunter-with-threat-intel.sh"
 
 # Update the main scanning scripts to use threat intelligence
 log_info "Updating main scanning scripts to use threat intelligence..."
 
 # Update daily scan script
-if [ -f "$SECURITY_SUITE_HOME/scripts/security-daily-scan.sh" ]; then
+if [ -f "$AEGIS_HOME/scripts/security-daily-scan.sh" ]; then
     # Add threat intelligence check to daily scan
     sed -i '/# Run ClamAV scan/i \
 # Check against threat intelligence database\
@@ -187,10 +187,10 @@ if [ -f "$IOC_DATABASE" ]; then\
         fi\
     done\
 fi\
-' "$SECURITY_SUITE_HOME/scripts/security-daily-scan.sh"
+' "$AEGIS_HOME/scripts/security-daily-scan.sh"
 fi
 
 log_success "Threat intelligence integration completed"
 log_info "Enhanced scanners created:"
-log_info "  - $SECURITY_SUITE_HOME/scripts/scanners/clamav-with-threat-intel.sh"
-log_info "  - $SECURITY_SUITE_HOME/scripts/scanners/rkhunter-with-threat-intel.sh"
+log_info "  - $AEGIS_HOME/scripts/scanners/clamav-with-threat-intel.sh"
+log_info "  - $AEGIS_HOME/scripts/scanners/rkhunter-with-threat-intel.sh"

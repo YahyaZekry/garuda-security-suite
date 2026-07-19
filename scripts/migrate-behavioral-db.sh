@@ -6,8 +6,8 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SECURITY_SUITE_HOME="${SECURITY_SUITE_HOME:-$(dirname "$SCRIPT_DIR")}"
-DB_PATH="$SECURITY_SUITE_HOME/configs/behavioral_analysis/behavioral_data.db"
+AEGIS_HOME="${AEGIS_HOME:-$(dirname "$SCRIPT_DIR")}"
+DB_PATH="$AEGIS_HOME/configs/behavioral_analysis/behavioral_data.db"
 
 echo "Starting behavioral analysis database migration..."
 

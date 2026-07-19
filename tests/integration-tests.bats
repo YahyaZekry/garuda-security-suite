@@ -38,7 +38,7 @@ fi
 # Override any path variables to ensure test environment
 LOGS_DIR="$TEST_LOGS_DIR"
 SCRIPTS_DIR="$TEST_DIR/scripts"
-SECURITY_SUITE_HOME="$TEST_DIR"
+AEGIS_HOME="$TEST_DIR"
 
 # Daily scan configuration
 DAILY_SCAN_TOOLS=("clamav")
@@ -156,7 +156,7 @@ EOF
     
     # Create configuration with validation errors
     cat > "$TEST_CONFIG_DIR/security-config.conf" << EOF
-SECURITY_SUITE_HOME="$TEST_DIR"
+AEGIS_HOME="$TEST_DIR"
 SCRIPTS_DIR="$TEST_DIR/scripts"
 LOGS_DIR="$TEST_LOGS_DIR"
 CONFIGS_DIR="$TEST_CONFIG_DIR"

@@ -2,7 +2,7 @@
 # Enable Optimized Components Script
 
 SCRIPT_DIR="$(dirname "$0")"
-SECURITY_SUITE_HOME="$(dirname "$SCRIPT_DIR")"
+AEGIS_HOME="$(dirname "$SCRIPT_DIR")"
 
 echo "Enabling optimized Aegis Security Suite components..."
 

@@ -97,9 +97,9 @@ fi
 
 ```bash
 # Check if security suite directory exists
-if [ -d "$HOME/security-suite" ]; then
+if [ -d "$HOME/aegis-security-suite" ]; then
     echo "✅ Security suite directory: Exists"
-    echo "   Location: $HOME/security-suite"
+    echo "   Location: $HOME/aegis-security-suite"
 else
     echo "❌ Security suite directory: Not found"
     echo "   Will be created during installation"
@@ -144,7 +144,7 @@ chmod +x setup-aegis.sh
 ./setup-aegis.sh
 
 # Choose custom configuration when prompted:
-# - Installation directory (default: ~/security-suite)
+# - Installation directory (default: ~/aegis-security-suite)
 # - Security tools to install
 # - Scan directories
 # - Notification settings
@@ -157,7 +157,7 @@ After installation completes, verify it was successful:
 
 ```bash
 # Check if installation was successful
-cd ~/security-suite
+cd ~/aegis-security-suite
 
 # Check directory structure
 ls -la
@@ -171,7 +171,7 @@ cat configs/security-config.conf
 
 Expected output should show:
 ```
-security-suite/
+aegis-security-suite/
 ├── scripts/          # Security scripts
 ├── configs/          # Configuration files
 ├── logs/             # Log files
@@ -190,7 +190,7 @@ The easiest way to start all security services:
 
 ```bash
 # Navigate to security suite directory
-cd ~/security-suite
+cd ~/aegis-security-suite
 
 # Start all services
 ./scripts/start-aegis.sh start all
@@ -293,7 +293,7 @@ Use the default credentials for first-time access:
 # 6. Confirm new password
 
 # Method 2: Using command line
-cd ~/security-suite/web-dashboard
+cd ~/aegis-security-suite/web-dashboard
 python3 -c "
 from auth import hash_password, update_password
 import sqlite3
@@ -342,13 +342,13 @@ Verify your installation with the comprehensive test suite:
 
 ```bash
 # Navigate to security suite directory
-cd ~/security-suite
+cd ~/aegis-security-suite
 
 # Run comprehensive test suite
-$SECURITY_SUITE_HOME/tests/test-suite-comprehensive.sh
+$AEGIS_HOME/tests/test-suite-comprehensive.sh
 
 # Check test results
-cat $HOME/security-suite/test-results/test-report-*.txt
+cat $HOME/aegis-security-suite/test-results/test-report-*.txt
 ```
 
 Expected output should show:
@@ -372,7 +372,7 @@ Run quick tests to verify core functionality:
 
 ```bash
 # Test security scanning
-cd $SECURITY_SUITE_HOME/scripts
+cd $AEGIS_HOME/scripts
 ./security-daily-scan.sh
 
 # Test behavioral analysis
@@ -412,7 +412,7 @@ Test behavioral analysis functionality:
 
 ```bash
 # Initialize behavioral analysis
-cd $SECURITY_SUITE_HOME/scripts
+cd $AEGIS_HOME/scripts
 ./behavioral-analysis.sh init
 
 # Create baseline (7 days recommended)
@@ -422,7 +422,7 @@ cd $SECURITY_SUITE_HOME/scripts
 ./behavioral-analysis.sh detect
 
 # Check results
-sqlite3 $HOME/security-suite/configs/behavioral_analysis/behavioral_data.db "SELECT * FROM anomaly_events;"
+sqlite3 $HOME/aegis-security-suite/configs/behavioral_analysis/behavioral_data.db "SELECT * FROM anomaly_events;"
 ```
 
 ### Incident Response Testing
@@ -431,7 +431,7 @@ Test incident response functionality:
 
 ```bash
 # Initialize incident response
-cd $SECURITY_SUITE_HOME/scripts
+cd $AEGIS_HOME/scripts
 ./incident-response.sh init
 
 # Create test incident
@@ -442,7 +442,7 @@ echo "test file" > /tmp/test_file.txt
 ./incident-response.sh quarantine "TEST_001" "/tmp/test_file.txt"
 
 # Check incident was created
-sqlite3 $HOME/security-suite/configs/incident_response/incidents.db "SELECT * FROM incidents;"
+sqlite3 $HOME/aegis-security-suite/configs/incident_response/incidents.db "SELECT * FROM incidents;"
 ```
 
 ---
@@ -534,7 +534,7 @@ The main dashboard provides a comprehensive overview of your security status:
 # Error: "Failed to enable unit: behavioral-monitor.timer does not exist"
 
 # Solution 1: Install behavioral monitor service
-cd $SECURITY_SUITE_HOME
+cd $AEGIS_HOME
 ./scripts/install-behavioral-monitor-service.sh
 
 # Solution 2: Start behavioral monitor manually
@@ -549,13 +549,13 @@ ls -la scripts/behavioral-monitor.*
 # Error: "No such file or directory" when accessing dashboard
 
 # Solution 1: Check dashboard directory
-ls -la $HOME/security-suite/web-dashboard/start-dashboard.sh
+ls -la $HOME/aegis-security-suite/web-dashboard/start-dashboard.sh
 
 # Solution 2: Make script executable
-chmod +x $HOME/security-suite/web-dashboard/start-dashboard.sh
+chmod +x $HOME/aegis-security-suite/web-dashboard/start-dashboard.sh
 
 # Solution 3: Start dashboard manually
-cd $HOME/security-suite/web-dashboard
+cd $HOME/aegis-security-suite/web-dashboard
 ./start-dashboard.sh start
 ```
 
@@ -564,7 +564,7 @@ cd $HOME/security-suite/web-dashboard
 # Error: "No such file or directory" when changing directories
 
 # Solution 1: Use absolute paths
-export SECURITY_SUITE_HOME="$(pwd)"
+export AEGIS_HOME="$(pwd)"
 ./scripts/start-aegis.sh start all
 
 # Solution 2: Check script permissions
@@ -596,7 +596,7 @@ systemctl --user list-unit-files | grep security
 #### Problem: Dashboard Not Accessible
 ```bash
 # Check dashboard status
-cd $HOME/security-suite/web-dashboard
+cd $HOME/aegis-security-suite/web-dashboard
 ./start-dashboard.sh status
 
 # Check port availability
@@ -609,12 +609,12 @@ netstat -tlnp | grep 8080
 sudo ufw allow 8080/tcp
 
 # Alternative: Start dashboard with explicit path
-export SECURITY_SUITE_HOME="$HOME/security-suite"
-cd $HOME/security-suite/web-dashboard
+export AEGIS_HOME="$HOME/aegis-security-suite"
+cd $HOME/aegis-security-suite/web-dashboard
 ./start-dashboard.sh start
 
 # Check dashboard logs
-tail -n 50 $HOME/security-suite/logs/web-dashboard.log
+tail -n 50 $HOME/aegis-security-suite/logs/web-dashboard.log
 ```
 
 ### Database Connection Issues
@@ -622,29 +622,29 @@ tail -n 50 $HOME/security-suite/logs/web-dashboard.log
 #### Problem: Database Not Found
 ```bash
 # Check database files
-ls -la $HOME/security-suite/configs/*/*.db
+ls -la $HOME/aegis-security-suite/configs/*/*.db
 
 # Initialize databases
-cd $SECURITY_SUITE_HOME/scripts
+cd $AEGIS_HOME/scripts
 ./behavioral-analysis.sh init
 ./incident-response.sh init
 
 # Check database permissions
-chmod 600 $HOME/security-suite/configs/*/*.db
-chmod 700 $HOME/security-suite/configs/*/
+chmod 600 $HOME/aegis-security-suite/configs/*/*.db
+chmod 700 $HOME/aegis-security-suite/configs/*/
 ```
 
 #### Problem: Database Permission Errors
 ```bash
 # Fix database permissions
-chmod 600 $HOME/security-suite/configs/*/*.db
-chmod 700 $HOME/security-suite/configs/*/
+chmod 600 $HOME/aegis-security-suite/configs/*/*.db
+chmod 700 $HOME/aegis-security-suite/configs/*/
 
 # Fix ownership
-sudo chown -R $(whoami):$(whoami) $HOME/security-suite/configs/
+sudo chown -R $(whoami):$(whoami) $HOME/aegis-security-suite/configs/
 
 # Remove database locks
-rm -f $HOME/security-suite/configs/*/*.db-journal
+rm -f $HOME/aegis-security-suite/configs/*/*.db-journal
 ```
 
 ### Permission Problems
@@ -667,12 +667,12 @@ username ALL=(ALL) NOPASSWD: /usr/bin/lynis
 #### Problem: File Permission Issues
 ```bash
 # Fix file permissions
-chmod -R 755 ~/security-suite/
-chmod -R 700 ~/security-suite/configs/
-chmod -R 755 ~/security-suite/scripts/
+chmod -R 755 ~/aegis-security-suite/
+chmod -R 700 ~/aegis-security-suite/configs/
+chmod -R 755 ~/aegis-security-suite/scripts/
 
 # Fix ownership
-sudo chown -R $(whoami):$(whoami) ~/security-suite/
+sudo chown -R $(whoami):$(whoami) ~/aegis-security-suite/
 ```
 
 ### Network Access Issues
@@ -707,7 +707,7 @@ sudo pacman -Syu
 #### Problem: Cannot Login to Dashboard
 ```bash
 # Reset admin password
-cd ~/security-suite/src/dashboard
+cd ~/aegis-security-suite/src/dashboard
 python3 -c "
 from auth import hash_password, update_password
 import sqlite3
@@ -728,14 +728,14 @@ print('Password reset to aegis123')
 #### Problem: Dashboard Shows Errors
 ```bash
 # Check dashboard logs
-cd ~/security-suite/src/dashboard
+cd ~/aegis-security-suite/src/dashboard
 tail -n 50 dashboard.log
 
 # Restart dashboard
 ./start-dashboard.sh restart
 
 # Check database connections
-sqlite3 ~/security-suite/configs/behavioral_analysis/behavioral_data.db "SELECT COUNT(*) FROM system_metrics;"
+sqlite3 ~/aegis-security-suite/configs/behavioral_analysis/behavioral_data.db "SELECT COUNT(*) FROM system_metrics;"
 ```
 
 ---
@@ -746,8 +746,8 @@ sqlite3 ~/security-suite/configs/behavioral_analysis/behavioral_data.db "SELECT 
 
 ```bash
 # Start all services (with workarounds)
-cd $SECURITY_SUITE_HOME
-export SECURITY_SUITE_HOME="$(pwd)"
+cd $AEGIS_HOME
+export AEGIS_HOME="$(pwd)"
 ./scripts/start-aegis.sh start all
 
 # Alternative: Start services individually
@@ -768,13 +768,13 @@ Username: admin
 Password: aegis123
 
 # Run comprehensive tests
-$SECURITY_SUITE_HOME/tests/test-suite-comprehensive.sh
+$AEGIS_HOME/tests/test-suite-comprehensive.sh
 
 # Restart all services
-$SECURITY_SUITE_HOME/scripts/start-aegis.sh restart all
+$AEGIS_HOME/scripts/start-aegis.sh restart all
 
 # Stop all services
-$SECURITY_SUITE_HOME/scripts/start-aegis.sh stop all
+$AEGIS_HOME/scripts/start-aegis.sh stop all
 ```
 
 ### Dashboard URLs
@@ -791,69 +791,69 @@ $SECURITY_SUITE_HOME/scripts/start-aegis.sh stop all
 
 ```bash
 # Security suite home
-~/security-suite/
+~/aegis-security-suite/
 
 # Configuration files
-~/security-suite/configs/security-config.conf
+~/aegis-security-suite/configs/security-config.conf
 
 # Log files
-~/security-suite/logs/
+~/aegis-security-suite/logs/
 
 # Database files
-~/security-suite/configs/behavioral_analysis/behavioral_data.db
-~/security-suite/configs/incident_response/incidents.db
-~/security-suite/configs/threat_intelligence/ioc_database.db
-~/security-suite/web-dashboard/auth.db
+~/aegis-security-suite/configs/behavioral_analysis/behavioral_data.db
+~/aegis-security-suite/configs/incident_response/incidents.db
+~/aegis-security-suite/configs/threat_intelligence/ioc_database.db
+~/aegis-security-suite/web-dashboard/auth.db
 
 # Quarantine directory
-~/security-suite/quarantine/
+~/aegis-security-suite/quarantine/
 
 # Evidence directory
-~/security-suite/evidence/
+~/aegis-security-suite/evidence/
 ```
 
 ### Service Management
 
 ```bash
 # Start individual services (with workarounds)
-export SECURITY_SUITE_HOME="$HOME/security-suite"
-$SECURITY_SUITE_HOME/scripts/start-aegis.sh start web-dashboard
-$SECURITY_SUITE_HOME/scripts/start-aegis.sh start behavioral-monitor
-$SECURITY_SUITE_HOME/scripts/start-aegis.sh start daily-scan
+export AEGIS_HOME="$HOME/aegis-security-suite"
+$AEGIS_HOME/scripts/start-aegis.sh start web-dashboard
+$AEGIS_HOME/scripts/start-aegis.sh start behavioral-monitor
+$AEGIS_HOME/scripts/start-aegis.sh start daily-scan
 
 # Install behavioral monitor timer if missing
-$SECURITY_SUITE_HOME/scripts/install-behavioral-monitor-service.sh
+$AEGIS_HOME/scripts/install-behavioral-monitor-service.sh
 
 # Restart individual services
-$SECURITY_SUITE_HOME/scripts/start-aegis.sh restart web-dashboard
-$SECURITY_SUITE_HOME/scripts/start-aegis.sh restart behavioral-monitor
+$AEGIS_HOME/scripts/start-aegis.sh restart web-dashboard
+$AEGIS_HOME/scripts/start-aegis.sh restart behavioral-monitor
 
 # Stop individual services
-$SECURITY_SUITE_HOME/scripts/start-aegis.sh stop web-dashboard
-$SECURITY_SUITE_HOME/scripts/start-aegis.sh stop behavioral-monitor
+$AEGIS_HOME/scripts/start-aegis.sh stop web-dashboard
+$AEGIS_HOME/scripts/start-aegis.sh stop behavioral-monitor
 
 # Get help
-$SECURITY_SUITE_HOME/scripts/start-aegis.sh help
+$AEGIS_HOME/scripts/start-aegis.sh help
 
 # Manual service startup (fallback)
-cd $HOME/security-suite/web-dashboard && ./start-dashboard.sh start
-cd $HOME/security-suite/scripts && ./behavioral-monitor.sh &
+cd $HOME/aegis-security-suite/web-dashboard && ./start-dashboard.sh start
+cd $HOME/aegis-security-suite/scripts && ./behavioral-monitor.sh &
 ```
 
 ### Emergency Commands
 
 ```bash
 # Emergency restart
-$SECURITY_SUITE_HOME/scripts/start-aegis.sh restart all
+$AEGIS_HOME/scripts/start-aegis.sh restart all
 
 # Emergency status check
-$SECURITY_SUITE_HOME/scripts/start-aegis.sh status
+$AEGIS_HOME/scripts/start-aegis.sh status
 
 # Emergency log check
-tail -n 50 $HOME/security-suite/logs/manual/security_scan_*.log
+tail -n 50 $HOME/aegis-security-suite/logs/manual/security_scan_*.log
 
 # Emergency database check
-sqlite3 $HOME/security-suite/configs/behavioral_analysis/behavioral_data.db "PRAGMA integrity_check;"
+sqlite3 $HOME/aegis-security-suite/configs/behavioral_analysis/behavioral_data.db "PRAGMA integrity_check;"
 ```
 
 ### Troubleshooting Commands
@@ -870,11 +870,11 @@ ping -c 3 8.8.8.8
 
 # Check service logs
 journalctl --user -u security-daily-scan.service --no-pager
-tail -n 50 $HOME/security-suite/web-dashboard/dashboard.log
+tail -n 50 $HOME/aegis-security-suite/web-dashboard/dashboard.log
 
 # Check database integrity
-sqlite3 $HOME/security-suite/configs/behavioral_analysis/behavioral_data.db "PRAGMA integrity_check;"
-sqlite3 $HOME/security-suite/configs/incident_response/incidents.db "PRAGMA integrity_check;"
+sqlite3 $HOME/aegis-security-suite/configs/behavioral_analysis/behavioral_data.db "PRAGMA integrity_check;"
+sqlite3 $HOME/aegis-security-suite/configs/incident_response/incidents.db "PRAGMA integrity_check;"
 ```
 
 ---

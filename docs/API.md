@@ -318,13 +318,13 @@ Checks available disk space.
 
 **Parameters:**
 - `required_mb` (int): Required disk space in MB
-- `path` (string, optional): Path to check (default: $SECURITY_SUITE_HOME)
+- `path` (string, optional): Path to check (default: $AEGIS_HOME)
 
 **Returns:** 0 on success, 1 on failure
 
 **Example:**
 ```bash
-check_disk_space 100 "/home/user/security-suite"
+check_disk_space 100 "/home/user/aegis-security-suite"
 ```
 
 #### `check_memory_usage(max_percent)`
@@ -437,7 +437,7 @@ retry_with_backoff "wget https://example.com/data" 5 2 30
 The following environment variables control the behavior of the Security Suite:
 
 #### Core Paths
-- `SECURITY_SUITE_HOME` - Base directory for security suite installation
+- `AEGIS_HOME` - Base directory for security suite installation
 - `SCRIPTS_DIR` - Directory containing script files
 - `LOGS_DIR` - Directory for log files
 - `CONFIGS_DIR` - Directory for configuration files
@@ -478,11 +478,11 @@ The main configuration file is located at `configs/security-config.conf` and fol
 # Security Suite Configuration
 
 # Dynamic path configuration
-SECURITY_SUITE_HOME="$HOME/security-suite"
-SCRIPTS_DIR="$SECURITY_SUITE_HOME/src/core/scripts"
-LOGS_DIR="$SECURITY_SUITE_HOME/logs"
-CONFIGS_DIR="$SECURITY_SUITE_HOME/configs"
-BACKUPS_DIR="$SECURITY_SUITE_HOME/backups"
+AEGIS_HOME="$HOME/aegis-security-suite"
+SCRIPTS_DIR="$AEGIS_HOME/src/core/scripts"
+LOGS_DIR="$AEGIS_HOME/logs"
+CONFIGS_DIR="$AEGIS_HOME/configs"
+BACKUPS_DIR="$AEGIS_HOME/backups"
 CURRENT_USER="$(whoami)"
 CURRENT_HOME="$HOME"
 
@@ -542,14 +542,14 @@ The logging system supports the following severity levels:
 ```bash
 #!/bin/bash
 # Load configuration and functions
-source "$HOME/security-suite/configs/security-config.conf"
-source "$HOME/security-suite/src/core/scripts/common-functions.sh"
+source "$HOME/aegis-security-suite/configs/security-config.conf"
+source "$HOME/aegis-security-suite/src/core/scripts/common-functions.sh"
 
 # Initialize logging
 init_logging "manual"
 
 # Perform ClamAV scan
-source "$HOME/security-suite/src/core/scripts/scanners/clamav-scanner.sh"
+source "$HOME/aegis-security-suite/src/core/scripts/scanners/clamav-scanner.sh"
 clamav_scan "/home/user/Documents"
 
 # Check result
@@ -566,7 +566,7 @@ fi
 #!/bin/bash
 # Custom scanner integration example
 
-source "$HOME/security-suite/src/core/scripts/common-functions.sh"
+source "$HOME/aegis-security-suite/src/core/scripts/common-functions.sh"
 
 # Initialize logging
 init_logging "manual")
@@ -600,7 +600,7 @@ custom_security_scan "/home/user/Documents"
 #!/bin/bash
 # Error handling example
 
-source "$HOME/security-suite/src/core/scripts/common-functions.sh"
+source "$HOME/aegis-security-suite/src/core/scripts/common-functions.sh"
 
 # Set up error handling
 set -e

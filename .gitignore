@@ -161,7 +161,7 @@ cookies.txt
 
 # Literal dollar-sign filenames (setup script artifacts)
 \$service_file
-\$SECURITY_SUITE_HOME/
+\$AEGIS_HOME/
 
 # Certificate files
 *.p12

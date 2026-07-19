@@ -18,7 +18,7 @@ if [ -f "$SCRIPT_DIR/common-functions.sh" ]; then
     source "$SCRIPT_DIR/common-functions.sh"
 fi
 
-# Setup user environment (will set CURRENT_USER, CURRENT_HOME, SECURITY_SUITE_HOME)
+# Setup user environment (will set CURRENT_USER, CURRENT_HOME, AEGIS_HOME)
 setup_user_environment
 
 # Function to print colored output
@@ -57,7 +57,7 @@ install_service() {
     print_status "Installing behavioral monitor service and timer..."
     
     # Update service file with correct paths
-    sed "s|/opt/aegis-security-suite|$SECURITY_SUITE_HOME|g" \
+    sed "s|/opt/aegis-security-suite|$AEGIS_HOME|g" \
         "$SCRIPT_DIR/behavioral-monitor.service" > "$SERVICE_DIR/behavioral-monitor.service"
     
     # Copy timer file

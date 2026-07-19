@@ -116,7 +116,7 @@ Before accessing the dashboard, ensure:
 #### Method 1: Using the Service Management Script
 ```bash
 # Navigate to security suite directory
-cd ~/security-suite
+cd ~/aegis-security-suite
 
 # Start the dashboard
 ./src/core/scripts/start-aegis.sh start web-dashboard
@@ -128,7 +128,7 @@ cd ~/security-suite
 #### Method 2: Using the Dashboard Script
 ```bash
 # Navigate to dashboard directory
-cd ~/security-suite/src/dashboard
+cd ~/aegis-security-suite/src/dashboard
 
 # Start the dashboard
 ./start-dashboard.sh start
@@ -140,7 +140,7 @@ cd ~/security-suite/src/dashboard
 #### Method 3: Manual Start
 ```bash
 # Navigate to dashboard directory
-cd ~/security-suite/src/dashboard
+cd ~/aegis-security-suite/src/dashboard
 
 # Install Python dependencies (if not already installed)
 pip3 install --user -r requirements.txt
@@ -249,7 +249,7 @@ The dashboard comes with default credentials for first-time access:
 #### Method 2: Using Command Line
 ```bash
 # Navigate to dashboard directory
-cd ~/security-suite/src/dashboard
+cd ~/aegis-security-suite/src/dashboard
 
 # Reset admin password
 python3 -c "
@@ -284,7 +284,7 @@ print('Password updated successfully')
 #### Method 2: Using Command Line
 ```bash
 # Navigate to dashboard directory
-cd ~/security-suite/src/dashboard
+cd ~/aegis-security-suite/src/dashboard
 
 # Create new user
 python3 -c "
@@ -1088,7 +1088,7 @@ The Aegis Security Dashboard is fully responsive and works on:
 
 1. **Check Dashboard Service**
    ```bash
-   cd ~/security-suite/src/dashboard
+   cd ~/aegis-security-suite/src/dashboard
    ./start-dashboard.sh status
    ```
 
@@ -1119,7 +1119,7 @@ The Aegis Security Dashboard is fully responsive and works on:
 
 1. **Reset Admin Password**
    ```bash
-   cd ~/security-suite/src/dashboard
+   cd ~/aegis-security-suite/src/dashboard
    python3 -c "
    from auth import hash_password, update_password
    import sqlite3
@@ -1136,8 +1136,8 @@ The Aegis Security Dashboard is fully responsive and works on:
 
 2. **Check Authentication Database**
    ```bash
-   ls -la ~/security-suite/src/dashboard/auth.db
-   sqlite3 ~/security-suite/src/dashboard/auth.db "SELECT * FROM users;"
+   ls -la ~/aegis-security-suite/src/dashboard/auth.db
+   sqlite3 ~/aegis-security-suite/src/dashboard/auth.db "SELECT * FROM users;"
    ```
 
 3. **Clear Browser Cache**
@@ -1160,7 +1160,7 @@ The Aegis Security Dashboard is fully responsive and works on:
 
 2. **Restart Dashboard Service**
    ```bash
-   cd ~/security-suite/src/dashboard
+   cd ~/aegis-security-suite/src/dashboard
    ./start-dashboard.sh restart
    ```
 
@@ -1188,7 +1188,7 @@ The Aegis Security Dashboard is fully responsive and works on:
 
 2. **Optimize Database**
    ```bash
-   cd ~/security-suite/configs/behavioral_analysis
+   cd ~/aegis-security-suite/configs/behavioral_analysis
    sqlite3 behavioral_data.db "VACUUM;"
    sqlite3 behavioral_data.db "ANALYZE;"
    ```
@@ -1196,7 +1196,7 @@ The Aegis Security Dashboard is fully responsive and works on:
 3. **Clean Up Old Data**
    ```bash
    # Clean up old behavioral data
-   sqlite3 ~/security-suite/configs/behavioral_analysis/behavioral_data.db "DELETE FROM system_metrics WHERE timestamp < datetime('now', '-30 days');"
+   sqlite3 ~/aegis-security-suite/configs/behavioral_analysis/behavioral_data.db "DELETE FROM system_metrics WHERE timestamp < datetime('now', '-30 days');"
    ```
 
 ### Advanced Troubleshooting
@@ -1206,7 +1206,7 @@ The Aegis Security Dashboard is fully responsive and works on:
 Enable debug mode for detailed error information:
 
 ```bash
-cd ~/security-suite/src/dashboard
+cd ~/aegis-security-suite/src/dashboard
 export FLASK_ENV=development
 export FLASK_DEBUG=1
 python3 app.py
@@ -1217,7 +1217,7 @@ python3 app.py
 Check dashboard logs for errors:
 
 ```bash
-cd ~/security-suite/src/dashboard
+cd ~/aegis-security-suite/src/dashboard
 tail -n 100 dashboard.log
 grep -i error dashboard.log
 ```
@@ -1228,13 +1228,13 @@ Check database integrity:
 
 ```bash
 # Check behavioral analysis database
-sqlite3 ~/security-suite/configs/behavioral_analysis/behavioral_data.db "PRAGMA integrity_check;"
+sqlite3 ~/aegis-security-suite/configs/behavioral_analysis/behavioral_data.db "PRAGMA integrity_check;"
 
 # Check incident response database
-sqlite3 ~/security-suite/configs/incident_response/incidents.db "PRAGMA integrity_check;"
+sqlite3 ~/aegis-security-suite/configs/incident_response/incidents.db "PRAGMA integrity_check;"
 
 # Check authentication database
-sqlite3 ~/security-suite/src/dashboard/auth.db "PRAGMA integrity_check;"
+sqlite3 ~/aegis-security-suite/src/dashboard/auth.db "PRAGMA integrity_check;"
 ```
 
 ### Getting Help
@@ -1247,9 +1247,9 @@ If you continue to experience issues:
    - [User Guide](USER_GUIDE.md)
 
 2. **Check Logs**
-   - Dashboard logs: `~/security-suite/src/dashboard/dashboard.log`
+   - Dashboard logs: `~/aegis-security-suite/src/dashboard/dashboard.log`
    - System logs: `journalctl --user -u security-*`
-   - Application logs: `~/security-suite/logs/`
+   - Application logs: `~/aegis-security-suite/logs/`
 
 3. **Report Issues**
    - GitHub Issues: [Report a problem](https://github.com/YahyaZekry/aegis-security-suite/issues)
@@ -1263,7 +1263,7 @@ If you continue to experience issues:
 
 ```bash
 # Start dashboard
-cd ~/security-suite
+cd ~/aegis-security-suite
 ./src/core/scripts/start-aegis.sh start web-dashboard
 
 # Check status
@@ -1279,7 +1279,7 @@ Username: admin
 Password: aegis123
 
 # Reset password
-cd ~/security-suite/src/dashboard
+cd ~/aegis-security-suite/src/dashboard
 python3 -c "
 from auth import hash_password, update_password
 import sqlite3
@@ -1306,14 +1306,14 @@ conn.close()
 
 ```bash
 # Emergency restart
-cd ~/security-suite
+cd ~/aegis-security-suite
 ./src/core/scripts/start-aegis.sh restart all
 
 # Emergency status check
 ./src/core/scripts/start-aegis.sh status
 
 # Emergency log check
-tail -n 50 ~/security-suite/src/dashboard/dashboard.log
+tail -n 50 ~/aegis-security-suite/src/dashboard/dashboard.log
 ```
 
 ---

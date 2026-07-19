@@ -7,9 +7,9 @@ Wants=network.target
 [Service]
 Type=simple
 User=${CURRENT_USER}
-WorkingDirectory=${SECURITY_SUITE_HOME}/web-dashboard
-ExecStart=/usr/bin/python3 ${SECURITY_SUITE_HOME}/web-dashboard/app.py
-ExecReload=/bin/kill -HUP 
+WorkingDirectory=${AEGIS_HOME}/web-dashboard
+ExecStart=${AEGIS_HOME}/web-dashboard/venv/bin/python3 ${AEGIS_HOME}/web-dashboard/app.py
+ExecReload=/bin/kill -HUP $MAINPID
 KillMode=mixed
 KillSignal=SIGTERM
 TimeoutStopSec=30
@@ -21,10 +21,10 @@ StartLimitInterval=300
 # Security settings
 NoNewPrivileges=true
 ProtectSystem=strict
-ProtectHome=true
-ReadWritePaths=${SECURITY_SUITE_HOME}/logs
-ReadWritePaths=${SECURITY_SUITE_HOME}/configs
-ReadWritePaths=${SECURITY_SUITE_HOME}/web-dashboard
+ProtectHome=read-only
+ReadWritePaths=${AEGIS_HOME}/logs
+ReadWritePaths=${AEGIS_HOME}/configs
+ReadWritePaths=${AEGIS_HOME}/web-dashboard
 PrivateTmp=true
 ProtectKernelTunables=true
 ProtectControlGroups=true
@@ -33,9 +33,9 @@ MemoryMax=512M
 CPUQuota=50%
 
 # Environment
-Environment=SECURITY_SUITE_HOME=${SECURITY_SUITE_HOME}
+Environment=AEGIS_HOME=${AEGIS_HOME}
 Environment=FLASK_ENV=production
-Environment=PYTHONPATH=${SECURITY_SUITE_HOME}/web-dashboard
+Environment=PYTHONPATH=${AEGIS_HOME}/web-dashboard
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target

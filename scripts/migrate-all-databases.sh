@@ -6,12 +6,12 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SECURITY_SUITE_HOME="${SECURITY_SUITE_HOME:-$(dirname "$SCRIPT_DIR")}"
+AEGIS_HOME="${AEGIS_HOME:-$(dirname "$SCRIPT_DIR")}"
 
 echo "=========================================="
 echo "Aegis Security Suite Database Migration"
 echo "=========================================="
-echo "Security Suite Home: $SECURITY_SUITE_HOME"
+echo "Security Suite Home: $AEGIS_HOME"
 echo "Timestamp: $(date)"
 echo ""
 
@@ -53,7 +53,7 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 # Set environment variable
-export SECURITY_SUITE_HOME="$SECURITY_SUITE_HOME"
+export AEGIS_HOME="$AEGIS_HOME"
 
 # Track overall success
 MIGRATION_SUCCESS=true
