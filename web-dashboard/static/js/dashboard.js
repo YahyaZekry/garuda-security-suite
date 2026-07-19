@@ -388,21 +388,52 @@ function updateSystemMetrics(data) {
     animateValue('cpu-usage', data.cpu_usage, '%', 1);
     animateValue('memory-usage', data.memory_usage, '%', 1);
     updateElement('threat-level', data.threat_level || 'Low');
-    
+
     // Update progress bars with smooth transitions
     updateProgressBar('cpu-progress', data.cpu_usage);
     updateProgressBar('memory-progress', data.memory_usage);
-    
+
     // Update status indicators
     updateStatusIndicator('system-status', data.status);
-    
+
     // Update incident count
     if (data.open_incidents !== undefined) {
         animateValue('incidents-count', data.open_incidents, '', 0);
     }
-    
+
+    updateResourceMetrics(data);
+
     // Store current metrics
     systemMetrics = { ...systemMetrics, ...data };
+}
+
+/**
+ * Populate the System Metrics panel's detailed fields (cores, load average,
+ * memory/disk used-of-total, network in/out). Shared by the initial page
+ * load (/api/system/status) and the live 'system_update' socket event -
+ * both send the same flat field names.
+ */
+function updateResourceMetrics(data) {
+    if (data.cpu_count !== undefined) updateElement('cpu-cores', data.cpu_count);
+    if (data.load_avg !== undefined) updateElement('cpu-load', data.load_avg.toFixed(2));
+
+    if (data.memory_used_gb !== undefined) updateElement('memory-used', data.memory_used_gb + ' GB');
+    if (data.memory_total_gb !== undefined) updateElement('memory-total', data.memory_total_gb + ' GB');
+
+    if (data.disk_usage !== undefined) {
+        updateElement('disk-metric', data.disk_usage.toFixed(1) + '%');
+        updateProgressBar('disk-progress', data.disk_usage);
+    }
+    if (data.disk_used_gb !== undefined) updateElement('disk-used', data.disk_used_gb + ' GB');
+    if (data.disk_total_gb !== undefined) updateElement('disk-total', data.disk_total_gb + ' GB');
+
+    if (data.network_in_kbps !== undefined && data.network_out_kbps !== undefined) {
+        const total = data.network_in_kbps + data.network_out_kbps;
+        updateElement('network-metric', total.toFixed(1) + ' KB/s');
+        updateProgressBar('network-progress', Math.min(total, 100));
+        updateElement('network-in', data.network_in_kbps.toFixed(1) + ' KB/s');
+        updateElement('network-out', data.network_out_kbps.toFixed(1) + ' KB/s');
+    }
 }
 
 /**

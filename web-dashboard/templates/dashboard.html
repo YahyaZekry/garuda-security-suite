@@ -17,9 +17,7 @@
             <div class="status-value" id="system-status-card">
                 <i class="fas fa-circle text-success pulse"></i> Online
             </div>
-            <div class="status-change">
-                <span class="change-positive">+0.5%</span> from last hour
-            </div>
+            <div class="status-change" id="system-status-change"></div>
         </div>
         <div class="status-chart">
             <canvas id="systemStatusChart" width="100" height="40"></canvas>
@@ -33,9 +31,7 @@
         <div class="status-content">
             <h3 class="status-title">Threat Level</h3>
             <div class="status-value" id="threat-level-card">Low</div>
-            <div class="status-change">
-                <span class="change-positive">-12%</span> from yesterday
-            </div>
+            <div class="status-change" id="threat-level-change"></div>
         </div>
         <div class="status-chart">
             <canvas id="threatLevelChart" width="100" height="40"></canvas>
@@ -49,9 +45,7 @@
         <div class="status-content">
             <h3 class="status-title">Active Incidents</h3>
             <div class="status-value" id="incidents-count">0</div>
-            <div class="status-change">
-                <span class="change-neutral">0%</span> no change
-            </div>
+            <div class="status-change" id="incidents-change"></div>
         </div>
         <div class="status-chart">
             <canvas id="incidentsChart" width="100" height="40"></canvas>
@@ -65,9 +59,7 @@
         <div class="status-content">
             <h3 class="status-title">Last Scan</h3>
             <div class="status-value" id="last-scan">Never</div>
-            <div class="status-change">
-                <span class="change-negative">Overdue</span> by 2 hours
-            </div>
+            <div class="status-change" id="last-scan-change"></div>
         </div>
         <div class="status-chart">
             <canvas id="scanChart" width="100" height="40"></canvas>
@@ -618,7 +610,7 @@ function initializeCharts() {
         data: {
             labels: ['Low Risk', 'Medium Risk', 'High Risk'],
             datasets: [{
-                data: [70, 25, 5],
+                data: [0, 0, 0],
                 backgroundColor: [
                     '#10b981',
                     '#f97316',
@@ -709,8 +701,35 @@ function loadDashboardData() {
             console.error('Error loading incidents:', error);
         });
 
+    // Load real incident severity counts for the Threat Distribution chart
+    // (this used to be hardcoded to a fake 70/25/5 split)
+    fetch('/api/incidents/statistics')
+        .then(response => response.json())
+        .then(data => {
+            updateThreatDistribution(data.statistics ? data.statistics.by_severity : {});
+        })
+        .catch(error => {
+            console.error('Error loading threat distribution:', error);
+        });
+
     // Load activity feed
     loadActivityFeed();
+}
+
+function updateThreatDistribution(bySeverity) {
+    bySeverity = bySeverity || {};
+    const low = bySeverity.low || 0;
+    const medium = bySeverity.medium || 0;
+    const high = (bySeverity.high || 0) + (bySeverity.critical || 0);
+
+    document.getElementById('low-risk-count').textContent = low;
+    document.getElementById('medium-risk-count').textContent = medium;
+    document.getElementById('high-risk-count').textContent = high;
+
+    if (threatScoreChart) {
+        threatScoreChart.data.datasets[0].data = [low, medium, high];
+        threatScoreChart.update();
+    }
 }
 
 function updateSystemStatus(data) {
@@ -726,12 +745,22 @@ function updateSystemStatus(data) {
     // Update progress bars
     updateProgressBar('cpu-progress', data.cpu_usage);
     updateProgressBar('memory-progress', data.memory_usage);
-    
-    // Update threat level
-    const threatLevel = data.threat_score > 70 ? 'High' : data.threat_score > 30 ? 'Medium' : 'Low';
+
+    // Update threat level (the API already computes this as a string -
+    // deriving it again from a nonexistent data.threat_score field here
+    // silently forced this to "Low" on every page load)
+    const threatLevel = data.threat_level || 'Low';
     document.getElementById('threat-level').textContent = threatLevel;
     document.getElementById('threat-level-card').textContent = threatLevel;
-    
+
+    // Update last scan time with real data instead of the static "Never"
+    // placeholder that used to ship with a fabricated "Overdue by 2 hours"
+    if (data.last_scan) {
+        document.getElementById('last-scan').textContent = formatTime(data.last_scan);
+    }
+
+    updateResourceMetrics(data);
+
     // Update system info
     updateSystemInfo(data);
     

@@ -8,6 +8,7 @@ import platform
 import subprocess
 import json
 import os
+import time
 from datetime import datetime
 from flask import Blueprint, jsonify, request, g
 
@@ -20,6 +21,25 @@ from auth import require_auth, require_role
 
 # Create Blueprint
 system_bp = Blueprint('system', __name__, url_prefix='/api/system')
+
+# Previous network I/O reading, used to compute an in/out rate across requests
+_last_net_io = None
+_last_net_io_time = None
+
+def get_network_rate_kbps():
+    """Compute network in/out KB/s from the delta since the last call."""
+    global _last_net_io, _last_net_io_time
+    net_io = psutil.net_io_counters()
+    now = time.time()
+    in_kbps, out_kbps = 0, 0
+    if _last_net_io is not None and _last_net_io_time is not None:
+        elapsed = now - _last_net_io_time
+        if elapsed > 0:
+            in_kbps = round((net_io.bytes_recv - _last_net_io.bytes_recv) / 1024 / elapsed, 1)
+            out_kbps = round((net_io.bytes_sent - _last_net_io.bytes_sent) / 1024 / elapsed, 1)
+    _last_net_io = net_io
+    _last_net_io_time = now
+    return max(in_kbps, 0), max(out_kbps, 0)
 
 def get_system_info():
     """Get comprehensive system information"""
@@ -263,15 +283,30 @@ def get_status():
         
         # Get open incidents count
         incidents_count = get_open_incidents_count()
-        
+
+        memory = system_data.get('memory', {})
+        disk_list = system_data.get('disk', [])
+        disk = disk_list[0] if disk_list else {}
+        load_avg = system_data.get('cpu', {}).get('load_avg')
+        network_in_kbps, network_out_kbps = get_network_rate_kbps()
+
         response = {
             'timestamp': datetime.now().isoformat(),
             'status': 'online',
             'threat_level': threat_level,
             'cpu_usage': system_data.get('cpu', {}).get('usage', 0),
-            'memory_usage': system_data.get('memory', {}).get('percent', 0),
-            'disk_usage': system_data.get('disk', [{}])[0].get('percent', 0) if system_data.get('disk') else 0,
+            'cpu_count': system_data.get('cpu', {}).get('count', 0),
+            'load_avg': load_avg[0] if load_avg else 0,
+            'memory_usage': memory.get('percent', 0),
+            'memory_used_gb': round(memory.get('used', 0) / (1024 ** 3), 2),
+            'memory_total_gb': round(memory.get('total', 0) / (1024 ** 3), 2),
+            'disk_usage': disk.get('percent', 0),
+            'disk_used_gb': round(disk.get('used', 0) / (1024 ** 3), 2),
+            'disk_total_gb': round(disk.get('total', 0) / (1024 ** 3), 2),
+            'network_in_kbps': network_in_kbps,
+            'network_out_kbps': network_out_kbps,
             'open_incidents': incidents_count,
+            'last_scan': get_last_scan_time(),
             'security_suite': security_data,
             'system_info': system_data.get('system', {}),
             'uptime': system_data.get('system', {}).get('uptime', 0)
@@ -535,13 +570,31 @@ def calculate_threat_level(system_data, security_data):
     except:
         return 'Unknown'
 
+def get_last_scan_time():
+    """Get the timestamp of the most recent security scan log, if any."""
+    try:
+        aegis_home = os.environ.get('AEGIS_HOME', '/opt/aegis-security-suite')
+        latest = None
+        for subdir in ('daily', 'weekly', 'monthly', 'manual'):
+            scan_dir = os.path.join(aegis_home, 'logs', subdir)
+            if not os.path.isdir(scan_dir):
+                continue
+            for filename in os.listdir(scan_dir):
+                path = os.path.join(scan_dir, filename)
+                mtime = os.path.getmtime(path)
+                if latest is None or mtime > latest:
+                    latest = mtime
+        return datetime.fromtimestamp(latest).isoformat() if latest else None
+    except Exception:
+        return None
+
 def get_open_incidents_count():
     """Get count of open incidents"""
     try:
-        # This would integrate with the incident response system
-        # For now, return a placeholder
-        return 0
-    except:
+        from api.incidents import get_incident_statistics
+        stats = get_incident_statistics()
+        return stats.get('statistics', {}).get('open_incidents', 0)
+    except Exception:
         return 0
 
 def get_auth_logs_lines(lines):

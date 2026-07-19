@@ -1088,12 +1088,31 @@ def background_monitoring():
                     conn.close()
                 except:
                     threat_score = 0
-            
+
+            # Detailed resource metrics for the dashboard's System Metrics panel
+            vm = psutil.virtual_memory()
+            disk = psutil.disk_usage('/')
+            try:
+                load_avg = os.getloadavg()[0]
+            except (AttributeError, OSError):
+                load_avg = 0
+            from api.system import get_network_rate_kbps
+            network_in_kbps, network_out_kbps = get_network_rate_kbps()
+
             # Emit system metrics updates
             socketio.emit('system_update', {
                 'timestamp': datetime.now().isoformat(),
                 'memory_usage': memory_usage,
                 'cpu_usage': cpu_usage,
+                'cpu_count': psutil.cpu_count() or 0,
+                'load_avg': load_avg,
+                'memory_used_gb': round(vm.used / (1024 ** 3), 2),
+                'memory_total_gb': round(vm.total / (1024 ** 3), 2),
+                'disk_usage': disk.percent,
+                'disk_used_gb': round(disk.used / (1024 ** 3), 2),
+                'disk_total_gb': round(disk.total / (1024 ** 3), 2),
+                'network_in_kbps': network_in_kbps,
+                'network_out_kbps': network_out_kbps,
                 'threat_score': threat_score,
                 'active_connections': active_connections
             }, room='system')
